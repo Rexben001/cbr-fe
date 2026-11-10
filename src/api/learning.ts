@@ -1,0 +1,92 @@
+import { request } from './client';
+import type {
+  AnswerResult,
+  EmbeddedLessonQuiz,
+  EmbeddedLessonQuizResult,
+  Lesson,
+  MediaAsset,
+  QuestionView,
+  QuizResult,
+  QuizView,
+  Scenario,
+  ScenarioAttempt,
+  Topic,
+} from './types';
+
+const normalizeScenario = (value: Partial<Scenario> & Record<string, unknown>): Scenario => {
+  const scene = (value.scene as Scenario['scene']) ?? {};
+  return {
+    id: String(value.id ?? ''),
+    title: String(value.title ?? ''),
+    description: value.description ?? (scene.description ?? ''),
+    topicId: String(value.topicId ?? value.topic ?? ''),
+    difficulty: (value.difficulty as Scenario['difficulty']) ?? 'easy',
+    mediaType: (value.mediaType ?? scene.mediaType ?? 'image') as Scenario['mediaType'],
+    mediaId: String(value.mediaId ?? scene.mediaId ?? ''),
+    questionText: String(value.questionText ?? scene.questionText ?? ''),
+    questionType: (value.questionType ?? scene.questionType ?? 'single_select') as Scenario['questionType'],
+    options: value.options ?? scene.options ?? [],
+    correctAnswerIds: value.correctAnswerIds ?? scene.correctAnswerIds ?? [],
+    explanation: value.explanation ?? scene.explanation ?? '',
+    examEligible: Boolean(value.examEligible ?? scene.examEligible ?? false),
+    contentReviewed: Boolean(value.contentReviewed ?? false),
+    topic: value.topic ?? value.topicId ?? undefined,
+    scene,
+  };
+};
+
+export const learningAPI = {
+	 embeddedLessonQuiz:(lessonID:string,quizID:string)=>request<EmbeddedLessonQuiz>(`/api/v1/lessons/${lessonID}/embedded-quizzes/${quizID}`),
+	 submitEmbeddedLessonQuiz:(lessonID:string,quizID:string,answers:Array<{questionId:string;answerIds:string[]}>)=>request<EmbeddedLessonQuizResult>(`/api/v1/lessons/${lessonID}/embedded-quizzes/${quizID}/attempts`,{method:'POST',body:JSON.stringify({answers})}),
+  mediaAccess: (id: string) =>
+    request<{ media: MediaAsset; expiresAt: string }>(
+      `/api/v1/media/${id}/access`,
+    ),
+  contentMedia: (type: 'lesson' | 'question' | 'scenario', id: string) =>
+    request<{ media: MediaAsset[] }>(
+      `/api/v1/content-media/${type}/${id}`,
+    ).then(({ media }) => media),
+  listTopics: () =>
+    request<{ topics: Topic[] }>('/api/v1/topics').then(({ topics }) => topics),
+  listLessons: (topicID: string) =>
+    request<{ lessons: Lesson[] }>(`/api/v1/topics/${topicID}/lessons`).then(
+      ({ lessons }) => lessons,
+    ),
+  getLesson: (lessonID: string) =>
+    request<Lesson>(`/api/v1/lessons/${lessonID}`),
+  getQuestions: (topicID: string) =>
+    request<{ questions: QuestionView[] }>(
+      `/api/v1/topics/${topicID}/questions?limit=5`,
+    ).then(({ questions }) => questions),
+  answer: (questionId: string, answerId: string) =>
+    request<AnswerResult>('/api/v1/answers', {
+      method: 'POST',
+      body: JSON.stringify({ questionId, answerId }),
+    }),
+  createQuiz: (topicId: string) =>
+    request<QuizView>('/api/v1/quizzes', {
+      method: 'POST',
+      body: JSON.stringify({ topicId }),
+    }),
+  submitQuiz: (
+    quizID: string,
+    answers: Array<{ questionId: string; answerId: string }>,
+  ) =>
+    request<QuizResult>(`/api/v1/quizzes/${quizID}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    }),
+  listScenarios: () =>
+    request<{ scenarios: Scenario[] }>('/api/v1/scenarios').then(({ scenarios }) =>
+      scenarios.map((scenario) => normalizeScenario(scenario as Partial<Scenario>)),
+    ),
+  getScenario: (id: string) =>
+    request<Scenario>(`/api/v1/scenarios/${id}`).then((scenario) =>
+      normalizeScenario(scenario as Partial<Scenario>),
+    ),
+  attemptScenario: (id: string, answerIds: string[]) =>
+    request<ScenarioAttempt>(`/api/v1/scenarios/${id}/attempts`, {
+      method: 'POST',
+      body: JSON.stringify({ answerIds, actionId: answerIds[0] ?? '' }),
+    }),
+};

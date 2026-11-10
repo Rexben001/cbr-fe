@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply m-0 bg-slate-50 font-sans antialiased;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,
+  h2,
+  h3,
+  p {
+    @apply m-0;
+  }
+}
+
+@layer components {
+  .prose h1 {
+    @apply mt-2 text-3xl font-bold text-ink;
+  }
+  .prose h2 {
+    @apply mt-8 text-xl font-bold text-ink;
+  }
+  .prose p {
+    @apply mt-4 leading-7 text-slate-700;
+  }
+  .prose li {
+    @apply ml-5 mt-2 list-disc text-slate-700;
+  }
+}
+
+@layer components {
+  .admin-shell {
+    @apply grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)];
+  }
+  .admin-sidebar {
+    @apply rounded-2xl bg-ink p-4 text-slate-200 lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)];
+  }
+  .admin-brand {
+    @apply flex items-center gap-2 border-b border-slate-600 pb-4 font-bold text-white;
+  }
+  .admin-nav {
+    @apply mt-4 space-y-1;
+  }
+  .admin-nav-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white;
+  }
+  .admin-nav-link-active {
+    @apply bg-ocean text-white hover:bg-ocean;
+  }
+  .admin-back-link {
+    @apply mt-6 block text-sm font-semibold text-slate-300 hover:text-white;
+  }
+  .admin-page-header {
+    @apply flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6;
+  }
+  .admin-page-header h1 {
+    @apply mt-1 text-3xl font-bold text-ink;
+  }
+  .admin-page-header p:not(.admin-eyebrow) {
+    @apply mt-2 max-w-2xl text-slate-600;
+  }
+  .admin-eyebrow {
+    @apply text-xs font-bold tracking-[0.16em] text-ocean;
+  }
+  .admin-primary-button {
+    @apply inline-flex items-center gap-2 rounded-xl bg-ocean px-4 py-3 font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60;
+  }
+  .admin-secondary-button {
+    @apply rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50;
+  }
+  .admin-card {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+  }
+  .admin-field {
+    @apply mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-ocean focus:ring-2 focus:ring-teal-100 disabled:cursor-not-allowed disabled:bg-slate-100;
+  }
+  .admin-label {
+    @apply block text-sm font-semibold text-slate-700;
+  }
+  .status-badge {
+    @apply inline-flex rounded-full px-2.5 py-1 text-xs font-bold capitalize;
+  }
+  .status-draft {
+    @apply bg-slate-100 text-slate-700;
+  }
+  .status-in-review {
+    @apply bg-amber-100 text-amber-800;
+  }
+  .status-published {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+  .status-archived {
+    @apply bg-red-100 text-red-800;
+  }
+  .wysiwyg {
+    @apply overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm transition focus-within:border-ocean focus-within:ring-2 focus-within:ring-teal-100;
+  }
+  .wysiwyg-toolbar {
+    @apply flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 p-2;
+  }
+  .wysiwyg-tool {
+    @apply grid h-9 w-9 place-items-center rounded-lg text-slate-600 transition hover:bg-white hover:text-ink;
+  }
+  .wysiwyg-tool svg {
+    @apply h-4 w-4;
+  }
+  .wysiwyg-tool-active {
+    @apply bg-ocean text-white hover:bg-ocean hover:text-white;
+  }
+  .wysiwyg-surface {
+    min-height: var(--editor-min-height);
+    @apply px-4 py-3 outline-none;
+  }
+  .wysiwyg-surface p:first-child {
+    @apply mt-0;
+  }
+  .wysiwyg-surface blockquote,
+  .prose blockquote {
+    @apply my-4 border-l-4 border-ocean bg-sky px-4 py-2 text-slate-700;
+  }
+  .wysiwyg-surface ol,
+  .prose ol {
+    @apply my-3 list-decimal pl-6;
+  }
+  .wysiwyg-surface ul,
+  .prose ul {
+    @apply my-3 list-disc pl-6;
+  }
+  .wysiwyg-surface a,
+  .prose a {
+    @apply font-semibold text-ocean underline;
+  }
+}
+
+.scenario-vehicle {
+  transform: translate(var(--x), var(--y)) rotate(var(--rotation));
+  transform-origin: center;
+}
+.scenario-move {
+  animation: scenario-drive 1.2s ease-in-out forwards;
+}
+@keyframes scenario-drive {
+  to {
+    transform: translate(var(--to-x), var(--to-y)) rotate(var(--rotation));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scenario-move {
+    animation-duration: 0.01ms;
+  }
+}

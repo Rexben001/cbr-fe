@@ -1,0 +1,149 @@
+
+# ==========================================
+# Dependencies
+# ==========================================
+node_modules/
+.pnp.*
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ==========================================
+# Production builds
+# ==========================================
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.vercel/
+.netlify/
+.turbo/
+.cache/
+.parcel-cache/
+
+# ==========================================
+# Environment variables and secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# ==========================================
+# Logs
+# ==========================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==========================================
+# Testing and coverage
+# ==========================================
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+__snapshots__/__diff_output__/
+
+# ==========================================
+# TypeScript
+# ==========================================
+*.tsbuildinfo
+.tsbuildinfo
+
+# ==========================================
+# ESLint and tooling caches
+# ==========================================
+.eslintcache
+.stylelintcache
+.prettiercache
+.vite/
+.vitest/
+node_modules/.vite/
+
+# ==========================================
+# IDE and editor files
+# ==========================================
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==========================================
+# Operating system files
+# ==========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+.Spotlight-V100/
+.Trashes/
+
+# ==========================================
+# Temporary files
+# ==========================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.swp
+*.swo
+*~
+*.pid
+*.pid.lock
+
+# ==========================================
+# Local databases and storage
+# ==========================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# ==========================================
+# Storybook
+# ==========================================
+storybook-static/
+
+# ==========================================
+# Local Docker overrides
+# ==========================================
+docker-compose.override.yml
+compose.override.yml
+
+# ==========================================
+# Keep important project files tracked
+# ==========================================
+!package-lock.json
+!yarn.lock
+!pnpm-lock.yaml
+!bun.lock
+!bun.lockb
+!bun.lockb.lock
