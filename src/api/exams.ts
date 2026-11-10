@@ -41,6 +41,22 @@ export interface ExamResult {
     correct: boolean;
   }>;
 }
+export interface ExamHistoryItem {
+  id: string;
+  status: 'in_progress' | 'completed' | 'expired';
+  startedAt: string;
+  completedAt?: string;
+  percentage: number;
+  passed: boolean;
+}
+export interface ExamPerformance {
+  totalCompleted: number;
+  passed: number;
+  failed: number;
+  passRate: number;
+  averageScore: number;
+  recent: ExamHistoryItem[];
+}
 export const examsAPI = {
   start: () => request<Exam>('/api/v1/exams', { method: 'POST' }),
   active: () => request<Exam>('/api/v1/exams/active'),
@@ -53,4 +69,10 @@ export const examsAPI = {
     }),
   submit: (id: string) =>
     request<ExamResult>(`/api/v1/exams/${id}/submit`, { method: 'POST' }),
+  history: () =>
+    request<{ attempts: ExamHistoryItem[] }>('/api/v1/users/me/exams').then(
+      (v) => v.attempts,
+    ),
+  performance: () =>
+    request<ExamPerformance>('/api/v1/users/me/exam-performance'),
 };

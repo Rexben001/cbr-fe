@@ -6,6 +6,7 @@ import { authAPI } from './api/auth';
 import { APIError } from './api/client';
 import { PrimaryLink } from './components';
 import { LearningPath } from './learning-path';
+import { PracticeAnalyticsCard } from './practice-progress';
 
 function AuthForm({ register }: { register: boolean }) {
   const navigate = useNavigate();
@@ -225,6 +226,7 @@ export function DashboardPage() {
       </section>
       {progress ? (
         <>
+          <PracticeAnalyticsCard />
           <section className="mt-7">
             <div className="flex items-end justify-between">
               <div>

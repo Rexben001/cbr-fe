@@ -55,4 +55,11 @@ export const authAPI = {
       body: JSON.stringify({ email, displayName, password, preferredLanguage }),
     }),
   logout: () => request<void>('/api/v1/auth/logout', { method: 'POST' }),
+  startLesson: (id: string) =>
+    request<void>(`/api/v1/lessons/${id}/start`, { method: 'POST' }),
+  saveLessonPosition: (id: string, position: string) =>
+    request<void>(`/api/v1/lessons/${id}/position`, {
+      method: 'PUT',
+      body: JSON.stringify({ position }),
+    }),
 };

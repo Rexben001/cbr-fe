@@ -37,6 +37,69 @@ export function ExamIntroPage() {
       >
         Start exam
       </button>
+      <Link
+        to="/exams/history"
+        className="mt-4 inline-block font-bold text-ocean"
+      >
+        My exam history →
+      </Link>
+    </div>
+  );
+}
+
+export function ExamHistoryPage() {
+  const history = useQuery({
+    queryKey: ['exam-history'],
+    queryFn: examsAPI.history,
+  });
+  const performance = useQuery({
+    queryKey: ['exam-performance'],
+    queryFn: examsAPI.performance,
+  });
+  if (history.isPending || performance.isPending) return <Loading />;
+  if (history.error || !history.data || !performance.data)
+    return <ErrorState message="Exam history could not be loaded." />;
+  return (
+    <div className="mx-auto max-w-3xl">
+      <p className="font-bold text-ocean">MY EXAMS</p>
+      <h1 className="mt-1 text-3xl font-bold">Exam history</h1>
+      <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-sky p-4 sm:grid-cols-4">
+        <span>{performance.data.totalCompleted} completed</span>
+        <span>{performance.data.passed} passed</span>
+        <span>{Math.round(performance.data.passRate)}% pass rate</span>
+        <span>{Math.round(performance.data.averageScore)}% average</span>
+      </div>
+      <p className="mt-3 text-sm text-slate-600">
+        Practice results are not a guarantee of an actual CBR exam result.
+      </p>
+      <div className="mt-6 space-y-3">
+        {history.data.map((item) => (
+          <Link
+            key={item.id}
+            to={
+              item.status === 'in_progress'
+                ? `/exams/${item.id}`
+                : `/exams/${item.id}/results`
+            }
+            className="block rounded-xl border bg-white p-4 hover:border-ocean"
+          >
+            <strong>
+              {item.status === 'completed'
+                ? item.passed
+                  ? 'Passed'
+                  : 'Not passed'
+                : item.status}
+            </strong>
+            <span className="ml-3">{item.percentage}%</span>
+            <span className="float-right text-sm text-slate-500">
+              {new Date(item.startedAt).toLocaleDateString()}
+            </span>
+          </Link>
+        ))}
+        {!history.data.length && (
+          <p className="rounded-xl bg-slate-100 p-4">No exam attempts yet.</p>
+        )}
+      </div>
     </div>
   );
 }

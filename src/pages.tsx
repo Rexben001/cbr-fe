@@ -1,7 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Clock3, Play, Sparkles, XCircle } from 'lucide-react';
-import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { learningAPI } from './api/learning';
 import { authAPI } from './api/auth';
 import type { QuestionView, QuizResult, QuizView } from './api/types';
@@ -14,9 +19,7 @@ const quizKey = (id: string) => `roadready.quiz.${id}`;
 const resultKey = (id: string) => `roadready.result.${id}`;
 
 export function Dashboard() {
-
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
-
 
   const {
     data: topics,
@@ -52,12 +55,14 @@ export function Dashboard() {
           >
             Play driving scenarios →
           </Link>
-          {!me.data?.email && <Link
-            to="/register"
-            className="inline-block rounded-xl border border-white/50 px-4 py-3 font-bold text-white hover:bg-white/10"
-          >
-            Create free account
-          </Link>}
+          {!me.data?.email && (
+            <Link
+              to="/register"
+              className="inline-block rounded-xl border border-white/50 px-4 py-3 font-bold text-white hover:bg-white/10"
+            >
+              Create free account
+            </Link>
+          )}
         </div>
       </section>
       <section>
@@ -102,8 +107,8 @@ export function TopicPage() {
   });
 
   console.log({
-    topics
-  })
+    topics,
+  });
   const {
     data: lessons,
     isPending,
@@ -157,6 +162,9 @@ export function TopicPage() {
 
 export function LessonPage() {
   const { lessonId = '' } = useParams();
+  useEffect(() => {
+    if (lessonId) void authAPI.startLesson(lessonId).catch(() => undefined);
+  }, [lessonId]);
   const {
     data: lesson,
     isPending,
@@ -176,9 +184,12 @@ export function LessonPage() {
   if (isPending) return <Loading />;
   if (error || !lesson)
     return <ErrorState message="This lesson could not be loaded." />;
-  const lessonIndex = topicLessons.data?.findIndex((item) => item.id === lesson.id) ?? -1;
-  const previousLesson = lessonIndex > 0 ? topicLessons.data?.[lessonIndex - 1] : undefined;
-  const nextLesson = lessonIndex >= 0 ? topicLessons.data?.[lessonIndex + 1] : undefined;
+  const lessonIndex =
+    topicLessons.data?.findIndex((item) => item.id === lesson.id) ?? -1;
+  const previousLesson =
+    lessonIndex > 0 ? topicLessons.data?.[lessonIndex - 1] : undefined;
+  const nextLesson =
+    lessonIndex >= 0 ? topicLessons.data?.[lessonIndex + 1] : undefined;
   return (
     <>
       <BackLink to={`/topics/${lesson.topicId}`}>Topic</BackLink>
@@ -209,9 +220,30 @@ export function LessonPage() {
           </p>
         )}
         {(previousLesson || nextLesson) && (
-          <nav aria-label="Lesson navigation" className="mt-6 flex justify-between gap-4 border-t pt-5">
-            {previousLesson ? <Link className="font-bold text-ocean" to={`/lessons/${previousLesson.id}`}>← Previous lesson</Link> : <span />}
-            {nextLesson ? <Link className="font-bold text-ocean" to={`/lessons/${nextLesson.id}`}>Next lesson →</Link> : <span />}
+          <nav
+            aria-label="Lesson navigation"
+            className="mt-6 flex justify-between gap-4 border-t pt-5"
+          >
+            {previousLesson ? (
+              <Link
+                className="font-bold text-ocean"
+                to={`/lessons/${previousLesson.id}`}
+              >
+                ← Previous lesson
+              </Link>
+            ) : (
+              <span />
+            )}
+            {nextLesson ? (
+              <Link
+                className="font-bold text-ocean"
+                to={`/lessons/${nextLesson.id}`}
+              >
+                Next lesson →
+              </Link>
+            ) : (
+              <span />
+            )}
           </nav>
         )}
       </div>
@@ -226,7 +258,7 @@ function QuestionCard({
   result,
 }: {
   question: QuestionView;
-  selected?: string;
+  selected?: string | string[];
   onSelect: (id: string) => void;
   result?: { correct: boolean; explanation: string };
 }) {
@@ -245,7 +277,7 @@ function QuestionCard({
             key={option.id}
             disabled={Boolean(result)}
             onClick={() => onSelect(option.id)}
-            className={`w-full rounded-xl border p-3 text-left transition ${selected === option.id ? 'border-ocean bg-sky' : 'hover:border-teal-300'} ${result ? 'cursor-default' : ''}`}
+            className={`w-full rounded-xl border p-3 text-left transition ${(Array.isArray(selected) ? selected.includes(option.id) : selected === option.id) ? 'border-ocean bg-sky' : 'hover:border-teal-300'} ${result ? 'cursor-default' : ''}`}
           >
             {option.text}
           </button>
@@ -265,6 +297,7 @@ function QuestionCard({
 
 export function PracticePage() {
   const { topicId = '' } = useParams();
+  const [searchParams] = useSearchParams();
   const {
     data: questions,
     isPending,
@@ -274,9 +307,27 @@ export function PracticePage() {
     queryFn: () => learningAPI.getQuestions(topicId),
   });
   const [index, setIndex] = useState(0);
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [reportDescription, setReportDescription] = useState('');
   const answer = useMutation({
     mutationFn: () => learningAPI.answer(questions![index].id, selected),
+  });
+  useEffect(() => {
+    const id = searchParams.get('question');
+    const found = questions?.findIndex((question) => question.id === id) ?? -1;
+    if (found >= 0) setIndex(found);
+  }, [questions, searchParams]);
+  const bookmark = useMutation({
+    mutationFn: () => learningAPI.toggleBookmark(questions![index].id),
+  });
+  const report = useMutation({
+    mutationFn: () =>
+      learningAPI.reportQuestion(
+        questions![index].id,
+        'other',
+        reportDescription,
+      ),
+    onSuccess: () => setReportDescription(''),
   });
   if (isPending) return <Loading />;
   if (error || !questions?.length)
@@ -299,13 +350,23 @@ export function PracticePage() {
       <QuestionCard
         question={question}
         selected={selected}
-        onSelect={setSelected}
+        onSelect={(id) =>
+          setSelected((current) =>
+            question.type === 'multiple_choice'
+              ? current.includes(id)
+                ? current.filter((value) => value !== id)
+                : [...current, id]
+              : [id],
+          )
+        }
         result={answer.data}
       />
       <div className="mt-5 flex justify-between">
         <button
           className="rounded-xl bg-ocean px-4 py-3 font-bold text-white disabled:opacity-50"
-          disabled={!selected || answer.isPending || Boolean(answer.data)}
+          disabled={
+            !selected.length || answer.isPending || Boolean(answer.data)
+          }
           onClick={() => answer.mutate()}
         >
           Check answer
@@ -315,13 +376,46 @@ export function PracticePage() {
             className="rounded-xl border border-ocean px-4 py-3 font-bold text-ocean"
             onClick={() => {
               setIndex((index + 1) % questions.length);
-              setSelected('');
+              setSelected([]);
               answer.reset();
             }}
           >
             Next question
           </button>
         )}
+      </div>
+      <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+        <button
+          type="button"
+          className="font-bold text-ocean"
+          onClick={() => bookmark.mutate()}
+        >
+          {bookmark.data?.bookmarked ? 'Bookmarked' : 'Bookmark question'}
+        </button>
+        <details className="text-sm">
+          <summary className="cursor-pointer font-bold text-slate-600">
+            Report a problem
+          </summary>
+          <div className="mt-2 flex gap-2">
+            <input
+              className="admin-field mt-0"
+              value={reportDescription}
+              onChange={(event) => setReportDescription(event.target.value)}
+              placeholder="Describe the issue"
+            />
+            <button
+              type="button"
+              disabled={!reportDescription.trim() || report.isPending}
+              className="admin-secondary-button"
+              onClick={() => report.mutate()}
+            >
+              Send report
+            </button>
+          </div>
+          {report.isSuccess && (
+            <p className="mt-2 text-teal-700">Report sent.</p>
+          )}
+        </details>
       </div>
       {answer.error && (
         <ErrorState message="Your answer could not be checked. Try again." />

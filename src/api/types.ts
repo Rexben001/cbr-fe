@@ -17,8 +17,30 @@ export interface Lesson {
   displayOrder: number;
   document: LessonDocument;
 }
-export interface EmbeddedLessonQuiz { id:string; lessonId:string; title:string; questions:Array<{id:string;text:string;type:'single_select'|'multi_select';options:AnswerOption[];explanation:string;mediaId?:string}> }
-export interface EmbeddedLessonQuizResult { attemptId:string; totalQuestions:number; correctAnswers:number; feedback:Array<{questionId:string;correct:boolean;explanation:string;correctAnswerIds:string[]}> }
+export interface EmbeddedLessonQuiz {
+  id: string;
+  lessonId: string;
+  title: string;
+  questions: Array<{
+    id: string;
+    text: string;
+    type: 'single_select' | 'multi_select';
+    options: AnswerOption[];
+    explanation: string;
+    mediaId?: string;
+  }>;
+}
+export interface EmbeddedLessonQuizResult {
+  attemptId: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  feedback: Array<{
+    questionId: string;
+    correct: boolean;
+    explanation: string;
+    correctAnswerIds: string[];
+  }>;
+}
 export interface LessonBlock {
   id: string;
   type: 'text' | 'image' | 'video' | 'animated' | 'callout' | 'scenario';
@@ -39,11 +61,47 @@ export interface QuestionView {
   text: string;
   options: AnswerOption[];
   difficulty: Difficulty;
+  type?: 'single_choice' | 'multiple_choice';
 }
 export interface AnswerResult {
   correct: boolean;
   xpEarned: number;
   explanation: string;
+}
+export interface PracticeAnalytics {
+  totalAttempts: number;
+  correctAttempts: number;
+  incorrectAttempts: number;
+  overallAccuracy: number;
+  distinctQuestions: number;
+  incorrectQuestions: number;
+  improvedQuestions: number;
+  topics: Array<{
+    topic: string;
+    attempts: number;
+    correct: number;
+    incorrect: number;
+    accuracy: number;
+    needsPractice: number;
+  }>;
+}
+export interface PracticeQuestionSummary {
+  questionId: string;
+  questionText: string;
+  topic: string;
+  difficulty: Difficulty;
+  questionType: string;
+  incorrectAttempts?: number;
+  needsPractice?: boolean;
+  createdAt?: string;
+}
+export interface QuestionReport {
+  id: string;
+  questionId: string;
+  category: string;
+  description: string;
+  status: string;
+  createdAt: string;
 }
 export interface QuizView {
   id: string;

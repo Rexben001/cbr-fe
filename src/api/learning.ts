@@ -1,6 +1,9 @@
 import { request } from './client';
 import type {
   AnswerResult,
+  PracticeAnalytics,
+  PracticeQuestionSummary,
+  QuestionReport,
   EmbeddedLessonQuiz,
   EmbeddedLessonQuizResult,
   Lesson,
@@ -13,18 +16,24 @@ import type {
   Topic,
 } from './types';
 
-const normalizeScenario = (value: Partial<Scenario> & Record<string, unknown>): Scenario => {
+const normalizeScenario = (
+  value: Partial<Scenario> & Record<string, unknown>,
+): Scenario => {
   const scene = (value.scene as Scenario['scene']) ?? {};
   return {
     id: String(value.id ?? ''),
     title: String(value.title ?? ''),
-    description: value.description ?? (scene.description ?? ''),
+    description: value.description ?? scene.description ?? '',
     topicId: String(value.topicId ?? value.topic ?? ''),
     difficulty: (value.difficulty as Scenario['difficulty']) ?? 'easy',
-    mediaType: (value.mediaType ?? scene.mediaType ?? 'image') as Scenario['mediaType'],
+    mediaType: (value.mediaType ??
+      scene.mediaType ??
+      'image') as Scenario['mediaType'],
     mediaId: String(value.mediaId ?? scene.mediaId ?? ''),
     questionText: String(value.questionText ?? scene.questionText ?? ''),
-    questionType: (value.questionType ?? scene.questionType ?? 'single_select') as Scenario['questionType'],
+    questionType: (value.questionType ??
+      scene.questionType ??
+      'single_select') as Scenario['questionType'],
     options: value.options ?? scene.options ?? [],
     correctAnswerIds: value.correctAnswerIds ?? scene.correctAnswerIds ?? [],
     explanation: value.explanation ?? scene.explanation ?? '',
@@ -36,8 +45,39 @@ const normalizeScenario = (value: Partial<Scenario> & Record<string, unknown>): 
 };
 
 export const learningAPI = {
-	 embeddedLessonQuiz:(lessonID:string,quizID:string)=>request<EmbeddedLessonQuiz>(`/api/v1/lessons/${lessonID}/embedded-quizzes/${quizID}`),
-	 submitEmbeddedLessonQuiz:(lessonID:string,quizID:string,answers:Array<{questionId:string;answerIds:string[]}>)=>request<EmbeddedLessonQuizResult>(`/api/v1/lessons/${lessonID}/embedded-quizzes/${quizID}/attempts`,{method:'POST',body:JSON.stringify({answers})}),
+  getQuestion: (id: string) => request<QuestionView>(`/api/v1/questions/${id}`),
+  bookmarks: () =>
+    request<{ bookmarks: PracticeQuestionSummary[] }>(
+      '/api/v1/users/me/bookmarks',
+    ).then((v) => v.bookmarks),
+  toggleBookmark: (id: string) =>
+    request<{ bookmarked: boolean }>(`/api/v1/questions/${id}/bookmark`, {
+      method: 'POST',
+    }),
+  revision: () =>
+    request<{ questions: PracticeQuestionSummary[] }>(
+      '/api/v1/users/me/revision',
+    ).then((v) => v.questions),
+  practiceAnalytics: () =>
+    request<PracticeAnalytics>('/api/v1/users/me/practice-analytics'),
+  reportQuestion: (id: string, category: string, description: string) =>
+    request<QuestionReport>(`/api/v1/questions/${id}/reports`, {
+      method: 'POST',
+      body: JSON.stringify({ category, description }),
+    }),
+  embeddedLessonQuiz: (lessonID: string, quizID: string) =>
+    request<EmbeddedLessonQuiz>(
+      `/api/v1/lessons/${lessonID}/embedded-quizzes/${quizID}`,
+    ),
+  submitEmbeddedLessonQuiz: (
+    lessonID: string,
+    quizID: string,
+    answers: Array<{ questionId: string; answerIds: string[] }>,
+  ) =>
+    request<EmbeddedLessonQuizResult>(
+      `/api/v1/lessons/${lessonID}/embedded-quizzes/${quizID}/attempts`,
+      { method: 'POST', body: JSON.stringify({ answers }) },
+    ),
   mediaAccess: (id: string) =>
     request<{ media: MediaAsset; expiresAt: string }>(
       `/api/v1/media/${id}/access`,
@@ -58,10 +98,14 @@ export const learningAPI = {
     request<{ questions: QuestionView[] }>(
       `/api/v1/topics/${topicID}/questions?limit=5`,
     ).then(({ questions }) => questions),
-  answer: (questionId: string, answerId: string) =>
+  answer: (questionId: string, answerId: string | string[]) =>
     request<AnswerResult>('/api/v1/answers', {
       method: 'POST',
-      body: JSON.stringify({ questionId, answerId }),
+      body: JSON.stringify(
+        Array.isArray(answerId)
+          ? { questionId, answerIds: answerId }
+          : { questionId, answerId },
+      ),
     }),
   createQuiz: (topicId: string) =>
     request<QuizView>('/api/v1/quizzes', {
@@ -77,8 +121,11 @@ export const learningAPI = {
       body: JSON.stringify({ answers }),
     }),
   listScenarios: () =>
-    request<{ scenarios: Scenario[] }>('/api/v1/scenarios').then(({ scenarios }) =>
-      scenarios.map((scenario) => normalizeScenario(scenario as Partial<Scenario>)),
+    request<{ scenarios: Scenario[] }>('/api/v1/scenarios').then(
+      ({ scenarios }) =>
+        scenarios.map((scenario) =>
+          normalizeScenario(scenario as Partial<Scenario>),
+        ),
     ),
   getScenario: (id: string) =>
     request<Scenario>(`/api/v1/scenarios/${id}`).then((scenario) =>

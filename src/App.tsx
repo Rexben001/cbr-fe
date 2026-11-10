@@ -11,7 +11,12 @@ import {
 } from './pages';
 import { ScenarioListPage, ScenarioPage } from './scenarios';
 import { DashboardPage, LoginPage, RegisterPage } from './auth-pages';
-import { ExamIntroPage, ExamPage, ExamResultsPage } from './exam-pages';
+import {
+  ExamHistoryPage,
+  ExamIntroPage,
+  ExamPage,
+  ExamResultsPage,
+} from './exam-pages';
 import { AdminDashboardPage } from './admin-pages';
 import { AdminTopicsPage } from './admin-topics';
 import { AdminQuestionsPage, AdminScenariosPage } from './admin-content';
@@ -21,6 +26,7 @@ import {
   AdminTopicRevisionsPage,
 } from './admin-topic-revisions';
 import { AdminMediaPage } from './admin-media';
+import { PracticeProgressPage } from './practice-progress';
 
 export default function App() {
   return (
@@ -73,11 +79,20 @@ export default function App() {
         <Route path="/exams" element={<ExamIntroPage />} />
         <Route path="/exams/:id" element={<ExamPage />} />
         <Route path="/exams/:id/results" element={<ExamResultsPage />} />
+        <Route path="/exams/history" element={<ExamHistoryPage />} />
         <Route path="/scenarios" element={<ScenarioListPage />} />
         <Route path="/scenarios/:scenarioId" element={<ScenarioPage />} />
         <Route path="/topics/:topicId" element={<TopicPage />} />
         <Route path="/lessons/:lessonId" element={<LessonPage />} />
         <Route path="/topics/:topicId/practice" element={<PracticePage />} />
+        <Route
+          path="/practice/revision"
+          element={<PracticeProgressPage mode="revision" />}
+        />
+        <Route
+          path="/practice/bookmarks"
+          element={<PracticeProgressPage mode="bookmarks" />}
+        />
         <Route path="/topics/:topicId/quiz" element={<StartQuizPage />} />
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quizzes/:quizId/results" element={<ResultsPage />} />
