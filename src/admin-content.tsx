@@ -9,11 +9,12 @@ import {
   ContentAction,
 } from './api/admin';
 import { authAPI } from './api/auth';
-import { AdminLayout, NewItemButton, StatusBadge } from './admin-ui';
+import { AdminLayout, AdminListControls, NewItemButton, StatusBadge } from './admin-ui';
 import { ErrorState, Loading } from './components';
 import { AdminMediaPicker } from './media';
 import { RichTextContent, RichTextEditor } from './rich-text';
 import { ScenarioEditor } from './scenario-editor';
+import { AdminFullscreenPreview } from './admin-preview';
 
 const questionBlank = (): AdminQuestion => ({
   id: '',
@@ -91,10 +92,17 @@ function TopicSelect({
 }
 
 export function AdminQuestionsPage() {
+  const pageSize = 25;
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [topic, setTopic] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
   const questions = useQuery({
-    queryKey: ['admin-questions'],
-    queryFn: adminAPI.questions,
+    queryKey: ['admin-questions', search, status, topic, offset],
+    queryFn: () => adminAPI.listQuestions({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', topic, search }),
     enabled: me.data?.role === 'admin',
   });
   const client = useQueryClient();
@@ -164,17 +172,19 @@ export function AdminQuestionsPage() {
       action={
         <NewItemButton
           label="New question"
-          onClick={() => setItem(questionBlank())}
+          onClick={() => { setItem(questionBlank()); setEditorOpen(true); }}
         />
       }
     >
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(18rem,.65fr)_minmax(0,1.35fr)]">
-        <section className="admin-card max-h-[75vh] overflow-y-auto p-2">
+      <div className={`mt-6 ${editorOpen ? '' : 'grid gap-6'}`}>
+        {!editorOpen && <section className="admin-card max-h-[75vh] overflow-y-auto p-2">
+          <AdminListControls search={search} onSearch={(value) => { setSearch(value); setOffset(0); }} status={status} onStatus={(value) => { setStatus(value); setOffset(0); }} count={questions.data.questions.length} offset={offset} pageSize={pageSize} onPrevious={() => setOffset((value) => Math.max(0, value - pageSize))} onNext={() => setOffset((value) => value + pageSize)} />
+          <label className="admin-label px-3 pt-2">Topic<input className="admin-field" value={topic} onChange={(event) => { setTopic(event.target.value); setOffset(0); }} placeholder="Filter by topic ID" /></label>
           {questions.data.questions.map((question) => (
             <button
               type="button"
               key={question.id}
-              onClick={() => setItem(question)}
+              onClick={() => { setItem(question); setEditorOpen(true); }}
               className={`mb-1 block w-full rounded-xl p-3 text-left ${item.id === question.id ? 'bg-sky ring-1 ring-ocean' : 'hover:bg-slate-50'}`}
             >
               <div className="flex gap-2">
@@ -188,8 +198,8 @@ export function AdminQuestionsPage() {
               </p>
             </button>
           ))}
-        </section>
-        <form onSubmit={submit} className="admin-card space-y-5">
+        </section>}
+        {editorOpen && <form onSubmit={submit} className="admin-card space-y-5">
           <div className="flex items-center justify-between border-b pb-4">
             <div>
               <h2 className="text-xl font-bold">
@@ -200,6 +210,8 @@ export function AdminQuestionsPage() {
               </p>
             </div>
             {item.version > 0 && <StatusBadge status={item.status} />}
+            <button type="button" className="admin-secondary-button" onClick={() => setEditorOpen(false)}>Back to questions</button>
+            <button type="button" className="admin-secondary-button" onClick={() => setPreviewOpen(true)}>Preview</button>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="admin-label">
@@ -477,17 +489,25 @@ export function AdminQuestionsPage() {
               message={validation || 'Question could not be saved.'}
             />
           )}
-        </form>
+        </form>}
       </div>
+      {previewOpen && <AdminFullscreenPreview title={item.text || 'Untitled question'} content={item.text} onClose={() => setPreviewOpen(false)} />}
     </AdminLayout>
   );
 }
 
 export function AdminScenariosPage() {
+  const pageSize = 25;
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [topic, setTopic] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
   const scenarios = useQuery({
-    queryKey: ['admin-scenarios'],
-    queryFn: adminAPI.scenarios,
+    queryKey: ['admin-scenarios', search, status, topic, offset],
+    queryFn: () => adminAPI.listScenarios({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', topic, search }),
     enabled: me.data?.role === 'admin',
   });
   const client = useQueryClient();
@@ -548,18 +568,20 @@ export function AdminScenariosPage() {
       action={
         <NewItemButton
           label="New scenario"
-          onClick={() => setItem(scenarioBlank())}
+          onClick={() => { setItem(scenarioBlank()); setEditorOpen(true); }}
         />
       }
     >
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(18rem,.55fr)_minmax(0,1.45fr)]">
-        <section className="admin-card max-h-[75vh] overflow-y-auto p-2">
+      <div className={`mt-6 ${editorOpen ? '' : 'grid gap-6'}`}>
+        {!editorOpen && <section className="admin-card max-h-[75vh] overflow-y-auto p-2">
+          <AdminListControls search={search} onSearch={(value) => { setSearch(value); setOffset(0); }} status={status} onStatus={(value) => { setStatus(value); setOffset(0); }} count={scenarios.data.scenarios.length} offset={offset} pageSize={pageSize} onPrevious={() => setOffset((value) => Math.max(0, value - pageSize))} onNext={() => setOffset((value) => value + pageSize)} />
+          <label className="admin-label px-3 pt-2">Topic<input className="admin-field" value={topic} onChange={(event) => { setTopic(event.target.value); setOffset(0); }} placeholder="Filter by topic ID" /></label>
           {scenarios.data.scenarios.map((scenario) => (
             <button
               type="button"
               key={scenario.id}
               onClick={() => {
-                setItem(scenario);
+                setItem(scenario); setEditorOpen(true);
                 setValidation('');
               }}
               className={`mb-1 block w-full rounded-xl p-3 text-left ${item.id === scenario.id ? 'bg-sky ring-1 ring-ocean' : 'hover:bg-slate-50'}`}
@@ -573,8 +595,8 @@ export function AdminScenariosPage() {
               </p>
             </button>
           ))}
-        </section>
-        <form onSubmit={submit} className="admin-card space-y-6">
+        </section>}
+        {editorOpen && <form onSubmit={submit} className="admin-card space-y-6">
           <div className="flex items-center justify-between border-b pb-4">
             <div>
               <h2 className="text-xl font-bold">
@@ -586,6 +608,8 @@ export function AdminScenariosPage() {
               </p>
             </div>
             {item.version > 0 && <StatusBadge status={item.status} />}
+            <button type="button" className="admin-secondary-button" onClick={() => setEditorOpen(false)}>Back to scenarios</button>
+            <button type="button" className="admin-secondary-button" onClick={() => setPreviewOpen(true)}>Preview</button>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="admin-label">
@@ -682,8 +706,9 @@ export function AdminScenariosPage() {
               message={validation || 'Scenario could not be saved.'}
             />
           )}
-        </form>
+        </form>}
       </div>
+      {previewOpen && <AdminFullscreenPreview title={item.title || 'Untitled scenario'} content={item.questionText || item.description || ''} onClose={() => setPreviewOpen(false)} />}
     </AdminLayout>
   );
 }

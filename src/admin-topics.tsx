@@ -3,8 +3,9 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { adminAPI, AdminTopic } from './api/admin';
 import { authAPI } from './api/auth';
-import { AdminLayout, NewItemButton, StatusBadge } from './admin-ui';
+import { AdminLayout, AdminListControls, NewItemButton, StatusBadge } from './admin-ui';
 import { ErrorState, Loading } from './components';
+import { AdminFullscreenPreview } from './admin-preview';
 
 const blank = (): AdminTopic => ({
   id: '',
@@ -30,10 +31,16 @@ const label: Record<string, string> = {
 };
 
 export function AdminTopicsPage() {
+  const pageSize = 25;
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
   const q = useQuery({
-    queryKey: ['admin-topics'],
-    queryFn: adminAPI.topics,
+    queryKey: ['admin-topics', search, status, offset],
+    queryFn: () => adminAPI.listTopics({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', search }),
     enabled: me.data?.role === 'admin',
   });
   const client = useQueryClient();
@@ -69,18 +76,16 @@ export function AdminTopicsPage() {
       title="Topics"
       description="Topics organise lessons, questions and scenarios. Start here when adding a new subject."
       action={
-        <NewItemButton label="New topic" onClick={() => setForm(blank())} />
+        <NewItemButton label="New topic" onClick={() => { setForm(blank()); setEditorOpen(true); }} />
       }
     >
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(18rem,.75fr)_minmax(0,1.25fr)]">
-        <section className="admin-card max-h-[70vh] overflow-y-auto p-2">
-          <p className="px-3 pb-2 pt-1 text-sm font-semibold text-slate-500">
-            {q.data.topics.length} topics
-          </p>
+      <div className={`mt-6 ${editorOpen ? '' : 'grid gap-6'}`}>
+        {!editorOpen && <section className="admin-card max-h-[70vh] overflow-y-auto p-2">
+          <AdminListControls search={search} onSearch={(value) => { setSearch(value); setOffset(0); }} status={status} onStatus={(value) => { setStatus(value); setOffset(0); }} count={q.data.topics.length} offset={offset} pageSize={pageSize} onPrevious={() => setOffset((value) => Math.max(0, value - pageSize))} onNext={() => setOffset((value) => value + pageSize)} />
           {q.data.topics.map((t) => (
             <button
               key={t.id}
-              onClick={() => setForm(t)}
+              onClick={() => { setForm(t); setEditorOpen(true); }}
               className={`mb-1 block w-full rounded-xl p-3 text-left transition hover:bg-slate-50 ${form.id === t.id ? 'bg-sky ring-1 ring-ocean' : ''}`}
             >
               <div className="flex items-start justify-between gap-2">
@@ -92,8 +97,8 @@ export function AdminTopicsPage() {
               </p>
             </button>
           ))}
-        </section>
-        <form onSubmit={submit} className="admin-card">
+        </section>}
+        {editorOpen && <form onSubmit={submit} className="admin-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
             <div>
               <h2 className="text-xl font-bold">
@@ -106,6 +111,8 @@ export function AdminTopicsPage() {
               </p>
             </div>
             {form.version > 0 && <StatusBadge status={form.status} />}
+            <button type="button" className="admin-secondary-button" onClick={() => setEditorOpen(false)}>Back to topics</button>
+            <button type="button" className="admin-secondary-button" onClick={() => setPreviewOpen(true)}>Preview</button>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             {(
@@ -206,8 +213,9 @@ export function AdminTopicsPage() {
               <ErrorState message="This change could not be saved. Refresh and try again." />
             </div>
           )}
-        </form>
+        </form>}
       </div>
+      {previewOpen && <AdminFullscreenPreview title={form.titleNl || 'Untitled topic'} content={form.descriptionNl} onClose={() => setPreviewOpen(false)} />}
     </AdminLayout>
   );
 }

@@ -62,4 +62,6 @@ export const authAPI = {
       method: 'PUT',
       body: JSON.stringify({ position }),
     }),
+  lessonPosition: (id: string) =>
+    request<{ position: string }>(`/api/v1/lessons/${id}/position`),
 };

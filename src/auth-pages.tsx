@@ -7,6 +7,8 @@ import { APIError } from './api/client';
 import { PrimaryLink } from './components';
 import { LearningPath } from './learning-path';
 import { PracticeAnalyticsCard } from './practice-progress';
+import { LearningRoadmap } from './learning-roadmap';
+import { examsAPI } from './api/exams';
 
 function AuthForm({ register }: { register: boolean }) {
   const navigate = useNavigate();
@@ -170,6 +172,12 @@ export function DashboardPage() {
     retry: false,
     enabled: Boolean(user),
   });
+  const examPerformance = useQuery({
+    queryKey: ['exam-performance'],
+    queryFn: examsAPI.performance,
+    enabled: Boolean(user),
+    retry: false,
+  });
   const client = useQueryClient();
   const logout = useMutation({
     mutationFn: authAPI.logout,
@@ -227,6 +235,48 @@ export function DashboardPage() {
       {progress ? (
         <>
           <PracticeAnalyticsCard />
+          <LearningRoadmap />
+          <section className="mt-7 rounded-2xl border bg-white p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-ocean">EXAM READINESS</p>
+                <h2 className="mt-1 text-xl font-bold">Study recommendation</h2>
+              </div>
+              <Link className="font-bold text-ocean" to="/exams/history">
+                Exam history →
+              </Link>
+            </div>
+            {examPerformance.data ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <strong>{examPerformance.data.totalCompleted}</strong>
+                  <p className="text-sm text-slate-600">completed exams</p>
+                </div>
+                <div>
+                  <strong>
+                    {Math.round(examPerformance.data.averageScore)}%
+                  </strong>
+                  <p className="text-sm text-slate-600">average score</p>
+                </div>
+                <div>
+                  <strong>{Math.round(examPerformance.data.passRate)}%</strong>
+                  <p className="text-sm text-slate-600">practice pass rate</p>
+                </div>
+                <p className="sm:col-span-3 rounded-xl bg-sky p-3 text-sm">
+                  {examPerformance.data.totalCompleted === 0
+                    ? 'Complete lessons and a focused practice quiz before attempting a timed exam.'
+                    : examPerformance.data.averageScore < 80
+                      ? 'Review mistakes and practise your weakest topic before another timed exam.'
+                      : 'Keep practising weak topics and take another timed exam when you are rested.'}{' '}
+                  Practice data is guidance, not a guarantee of a CBR result.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-600">
+                Complete a mock exam to see your exam-practice summary.
+              </p>
+            )}
+          </section>
           <section className="mt-7">
             <div className="flex items-end justify-between">
               <div>

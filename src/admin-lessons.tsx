@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { adminAPI, AdminLesson } from './api/admin';
 import { authAPI } from './api/auth';
-import { AdminLayout, NewItemButton, StatusBadge } from './admin-ui';
+import { AdminLayout, AdminListControls, NewItemButton, StatusBadge } from './admin-ui';
 import { ErrorState, Loading } from './components';
 import { LessonBuilder } from './lesson-builder';
 import { AdminMediaPicker } from './media';
 import { RichTextEditor } from './rich-text';
+import { AdminFullscreenPreview } from './admin-preview';
 
 const blank = (): AdminLesson => ({
   id: '',
@@ -25,10 +26,23 @@ const blank = (): AdminLesson => ({
 });
 
 export function AdminLessonsPage() {
+  const pageSize = 25;
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [practiceOpen, setPracticeOpen] = useState(false);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
   const lessons = useQuery({
-    queryKey: ['admin-lessons'],
-    queryFn: adminAPI.lessons,
+    queryKey: ['admin-lessons', search, status, offset],
+    queryFn: () => adminAPI.listLessons({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', search }),
     enabled: me.data?.role === 'admin',
   });
   const topics = useQuery({
@@ -44,6 +58,7 @@ export function AdminLessonsPage() {
     onSuccess: (saved) => {
       client.invalidateQueries({ queryKey: ['admin-lessons'] });
       setItem(saved);
+      setDirty(false);
     },
   });
   const transition = useMutation({
@@ -86,16 +101,18 @@ export function AdminLessonsPage() {
       title="Lessons"
       description="Write lesson content and attach images, GIFs or videos."
       action={
-        <NewItemButton label="New lesson" onClick={() => setItem(blank())} />
+        <NewItemButton label="New lesson" onClick={() => { setItem(blank()); setDirty(false); setEditorOpen(true); }} />
       }
     >
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(18rem,.75fr)_minmax(0,1.25fr)]">
+      <div className={`mt-6 ${editorOpen ? '' : 'grid gap-6'}`}>
+        {!editorOpen && (
         <section className="admin-card max-h-[70vh] overflow-y-auto p-2">
+          <AdminListControls search={search} onSearch={(value) => { setSearch(value); setOffset(0); }} status={status} onStatus={(value) => { setStatus(value); setOffset(0); }} count={lessons.data.lessons.length} offset={offset} pageSize={pageSize} onPrevious={() => setOffset((value) => Math.max(0, value - pageSize))} onNext={() => setOffset((value) => value + pageSize)} />
           {lessons.data.lessons.map((lesson) => (
             <button
               key={lesson.id}
               type="button"
-              onClick={() => setItem(lesson)}
+              onClick={() => { setItem(lesson); setDirty(false); setEditorOpen(true); }}
               className={`mb-1 block w-full rounded-xl p-3 text-left ${item.id === lesson.id ? 'bg-sky ring-1 ring-ocean' : 'hover:bg-slate-50'}`}
             >
               <div className="flex gap-2">
@@ -108,11 +125,14 @@ export function AdminLessonsPage() {
             </button>
           ))}
         </section>
+        )}
+        {editorOpen && (
         <form
           onSubmit={(event: FormEvent) => {
             event.preventDefault();
             save.mutate();
           }}
+          onChangeCapture={() => setDirty(true)}
           className="admin-card space-y-5"
         >
           <div className="flex items-center justify-between border-b pb-4">
@@ -125,6 +145,9 @@ export function AdminLessonsPage() {
               </p>
             </div>
             {item.version > 0 && <StatusBadge status={item.status} />}
+            <button type="button" className="admin-secondary-button" onClick={() => { if (!dirty || window.confirm('Discard unsaved lesson changes?')) setEditorOpen(false); }}>Back to lessons</button>
+            <button type="button" className="admin-secondary-button" onClick={() => setPreviewOpen(true)}>Preview</button>
+            {item.version > 0 && <button type="button" className="admin-secondary-button" onClick={() => setPracticeOpen(true)}>Manage practice questions</button>}
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="admin-label">
@@ -302,7 +325,25 @@ export function AdminLessonsPage() {
             />
           </details>
         </form>
+        )}
       </div>
+      {previewOpen && <AdminFullscreenPreview title={item.title || 'Untitled lesson'} content={item.content} onClose={() => setPreviewOpen(false)} />}
+      {practiceOpen && <LessonPracticeQuestionDialog lessonID={item.id} onClose={() => setPracticeOpen(false)} />}
     </AdminLayout>
   );
+}
+
+function LessonPracticeQuestionDialog({ lessonID, onClose }: { lessonID: string; onClose: () => void }) {
+  const [search, setSearch] = useState('');
+  const [topic, setTopic] = useState('');
+  const links = useQuery({ queryKey: ['lesson-practice-links', lessonID], queryFn: () => adminAPI.lessonPracticeQuestions(lessonID) });
+  const bank = useQuery({ queryKey: ['lesson-practice-bank'], queryFn: () => adminAPI.listQuestions({ limit: 100 }) });
+  const client = useQueryClient();
+  const [selected, setSelected] = useState<string[] | null>(null);
+  const ids = selected ?? links.data ?? [];
+  const save = useMutation({ mutationFn: () => adminAPI.setLessonPracticeQuestions(lessonID, ids), onSuccess: () => { client.invalidateQueries({ queryKey: ['lesson-practice-links', lessonID] }); onClose(); } });
+  const questions = (bank.data?.questions ?? []).filter((question) => (!topic || question.topicId === topic) && (!search || question.text.toLowerCase().includes(search.toLowerCase())));
+  const topics = [...new Set((bank.data?.questions ?? []).map((question) => question.topicId))];
+  const move = (id: string, direction: -1 | 1) => setSelected((current) => { const values = [...(current ?? links.data ?? [])]; const index = values.indexOf(id); const target = index + direction; if (target < 0 || target >= values.length) return values; [values[index], values[target]] = [values[target], values[index]]; return values; });
+  return <div className="fixed inset-0 z-[90] overflow-y-auto bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="lesson-practice-manager"><div className="mx-auto my-8 max-w-3xl rounded-2xl bg-white p-6 shadow-2xl"><h2 id="lesson-practice-manager" className="text-xl font-bold">Manage lesson practice questions</h2><p className="mt-1 text-sm text-slate-600">Only published questions linked here appear at the end of this lesson. Use the arrows to set learner order.</p><div className="mt-4 grid gap-2 sm:grid-cols-[1fr_12rem]"><input className="admin-field mt-0" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search question text" /><select className="admin-field mt-0" value={topic} onChange={(event) => setTopic(event.target.value)}><option value="">All topics</option>{topics.map((value) => <option value={value} key={value}>{value}</option>)}</select></div><div className="mt-4 max-h-[50vh] space-y-2 overflow-y-auto">{questions.map((question) => { const position = ids.indexOf(question.id); const checked = position >= 0; return <div key={question.id} className="flex gap-3 rounded-xl border p-3 hover:bg-slate-50"><input aria-label={`Include ${question.id}`} type="checkbox" checked={checked} onChange={() => setSelected((current) => { const values = current ?? links.data ?? []; return checked ? values.filter((id) => id !== question.id) : [...values, question.id]; })} /><span className="flex-1"><span className="text-xs text-slate-500">{question.topicId} · {question.status}</span><strong className="mt-1 block">{question.text.replace(/[#*_]/g, '')}</strong></span>{checked && <span className="flex items-center gap-1"><small>{position + 1}</small><button type="button" className="admin-secondary-button px-2" disabled={position === 0} onClick={() => move(question.id, -1)}>↑</button><button type="button" className="admin-secondary-button px-2" disabled={position === ids.length - 1} onClick={() => move(question.id, 1)}>↓</button></span>}</div>})}</div><p className="mt-3 text-sm text-slate-600">{ids.length} selected.</p><div className="mt-5 flex justify-end gap-3"><button type="button" className="admin-secondary-button" onClick={onClose}>Cancel</button><button type="button" className="admin-primary-button" disabled={save.isPending} onClick={() => save.mutate()}>Save practice questions</button></div>{(links.error || bank.error || save.error) && <ErrorState message="Practice-question links could not be saved." />}</div></div>;
 }

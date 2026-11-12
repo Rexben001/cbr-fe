@@ -37,10 +37,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { htmlToMarkdown, markdownToHTML } from './rich-text-format';
-import { adminAPI, type AdminLessonQuiz } from './api/admin';
+import { adminAPI, type AdminLessonQuiz, type AdminQuestion } from './api/admin';
 import { learningAPI } from './api/learning';
 import { MediaPreview } from './media';
 import { EmbeddedLessonQuiz } from './lesson-quiz';
+import { LessonQuizRevisions } from './lesson-quiz-revisions';
 
 const LessonQuizNode = Node.create({
   name: 'lessonQuiz',
@@ -113,15 +114,21 @@ const newQuestion = () => ({
 
 function LessonQuizDialog({
   quiz,
+  isNew,
   onClose,
   onSaved,
 }: {
   quiz: AdminLessonQuiz;
+  isNew: boolean;
   onClose: () => void;
   onSaved: (quiz: AdminLessonQuiz) => void;
 }) {
   const [draft, setDraft] = useState(quiz);
   const [search, setSearch] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importedQuestionIDs, setImportedQuestionIDs] = useState<Set<string>>(
+    new Set(),
+  );
   const media = useQuery({
     queryKey: ['lesson-quiz-media', search],
     queryFn: () => adminAPI.media({ search, status: 'available' }),
@@ -191,6 +198,21 @@ function LessonQuizDialog({
             placeholder="For example: Priority quick check"
           />
         </label>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ocean/20 bg-sky/40 p-4">
+          <div>
+            <h3 className="font-bold text-ink">Reuse question-bank content</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Imported questions are copied into this quiz, so later question-bank edits do not change this lesson.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="admin-secondary-button"
+            onClick={() => setImportOpen(true)}
+          >
+            <Search size={16} /> Import questions
+          </button>
+        </div>
         <div className="mt-6 space-y-5">
           {draft.questions.map((question, index) => (
             <section
@@ -393,6 +415,15 @@ function LessonQuizDialog({
         >
           <Plus size={16} /> Add question
         </button>
+        {!isNew && (
+          <LessonQuizRevisions
+            quizId={quiz.id}
+            onRestored={(restored) => {
+              setDraft(restored);
+              onSaved(restored);
+            }}
+          />
+        )}
         <div className="mt-6 flex justify-end gap-3 border-t pt-5">
           <button
             type="button"
@@ -417,8 +448,88 @@ function LessonQuizDialog({
           </p>
         )}
       </div>
+      {importOpen && (
+        <QuestionImportDialog
+          existing={draft.questions}
+          importedQuestionIDs={importedQuestionIDs}
+          onClose={() => setImportOpen(false)}
+          onImport={(questions, ids) => {
+            setDraft((current) => ({
+              ...current,
+              questions: [...current.questions, ...questions],
+            }));
+            setImportedQuestionIDs((current) => new Set([...current, ...ids]));
+            setImportOpen(false);
+          }}
+        />
+      )}
     </div>
   );
+}
+
+function QuestionImportDialog({
+  existing,
+  importedQuestionIDs,
+  onClose,
+  onImport,
+}: {
+  existing: AdminLessonQuiz['questions'];
+  importedQuestionIDs: Set<string>;
+  onClose: () => void;
+  onImport: (questions: AdminLessonQuiz['questions'], ids: string[]) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [topic, setTopic] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const questions = useQuery({ queryKey: ['question-bank-import'], queryFn: () => adminAPI.listQuestions({ limit: 100 }) });
+  const visible = (questions.data?.questions ?? []).filter((question) =>
+    (!topic || question.topicId === topic) &&
+    (!search || question.text.toLowerCase().includes(search.toLowerCase())),
+  );
+  const topics = [...new Set((questions.data?.questions ?? []).map((question) => question.topicId))].sort();
+  const add = () => {
+    const chosen = (questions.data?.questions ?? []).filter((question) => selected.has(question.id));
+    onImport(chosen.map(questionToLessonQuizQuestion), chosen.map((question) => question.id));
+  };
+  return (
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="import-question-title">
+      <div className="mx-auto my-8 max-w-4xl rounded-2xl bg-white p-5 shadow-xl sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div><h2 id="import-question-title" className="text-xl font-bold">Import question-bank questions</h2><p className="mt-1 text-sm text-slate-600">Select one or more questions to create independent snapshots in this lesson quiz.</p></div>
+          <button type="button" className="wysiwyg-tool" aria-label="Close question import" onClick={onClose}><X /></button>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_12rem]">
+          <input className="admin-field" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search question text" aria-label="Search question bank" />
+          <select className="admin-field" value={topic} onChange={(event) => setTopic(event.target.value)} aria-label="Filter question bank by topic">
+            <option value="">All topics</option>{topics.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </div>
+        <div className="mt-4 max-h-[52vh] space-y-2 overflow-y-auto">
+          {questions.isPending && <p className="text-sm text-slate-600">Loading question bank…</p>}
+          {questions.error && <p role="alert" className="text-sm text-red-700">Question bank could not be loaded.</p>}
+          {!questions.isPending && !questions.error && visible.map((question) => {
+            const unavailable = importedQuestionIDs.has(question.id) || existing.some((item) => item.sourceQuestionId === question.id);
+            return <QuestionImportRow key={question.id} question={question} checked={selected.has(question.id)} disabled={unavailable} onChange={() => setSelected((current) => { const next = new Set(current); next.has(question.id) ? next.delete(question.id) : next.add(question.id); return next; })} />;
+          })}
+          {!questions.isPending && !questions.error && visible.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No matching question-bank questions.</p>}
+        </div>
+        <div className="mt-5 flex justify-end gap-3"><button type="button" className="admin-secondary-button" onClick={onClose}>Cancel</button><button type="button" className="admin-primary-button" disabled={selected.size === 0} onClick={add}>Import {selected.size || ''} question{selected.size === 1 ? '' : 's'}</button></div>
+      </div>
+    </div>
+  );
+}
+
+function QuestionImportRow({ question, checked, disabled, onChange }: { question: AdminQuestion; checked: boolean; disabled: boolean; onChange: () => void }) {
+  const media = useQuery({ queryKey: ['question-import-media', question.id], queryFn: () => adminAPI.contentMedia('question', question.id), staleTime: 60_000 });
+  return <label className={`flex gap-3 rounded-xl border p-3 ${disabled ? 'bg-slate-50 opacity-60' : 'cursor-pointer hover:border-ocean/40'}`}>
+    <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} className="mt-1" />
+    <div className="min-w-0 flex-1"><div className="flex flex-wrap gap-2 text-xs text-slate-500"><span>{question.topicId}</span><span>·</span><span>{question.type === 'multiple_choice' ? 'Multiple select' : 'Single select'}</span>{disabled && <span>· Already imported</span>}</div><p className="mt-1 line-clamp-2 font-semibold">{question.text.replace(/[#*_]/g, '')}</p>{media.data?.media[0] && <div className="mt-2 max-w-40"><MediaPreview asset={media.data.media[0]} /></div>}</div>
+  </label>;
+}
+
+function questionToLessonQuizQuestion(question: AdminQuestion): AdminLessonQuiz['questions'][number] {
+  const correct = new Set(question.type === 'multiple_choice' ? question.correctAnswerIds : [question.correctAnswerId]);
+  return { id: newID('lesson-quiz-question'), sourceQuestionId: question.id, text: question.text, type: question.type === 'multiple_choice' ? 'multi_select' : 'single_select', explanation: question.explanationNl, options: question.options.map((option) => ({ id: newID('lesson-quiz-option'), text: option.text, correct: correct.has(option.id) })) };
 }
 
 const MediaAssetNode = Node.create({
@@ -841,6 +952,7 @@ export function RichTextEditor({
       {quizDraft && (
         <LessonQuizDialog
           quiz={quizDraft}
+          isNew={insertQuizAfterSave}
           onClose={() => setQuizDraft(undefined)}
           onSaved={quizSaved}
         />

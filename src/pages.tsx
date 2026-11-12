@@ -165,6 +165,29 @@ export function LessonPage() {
   useEffect(() => {
     if (lessonId) void authAPI.startLesson(lessonId).catch(() => undefined);
   }, [lessonId]);
+  const savedPosition = useQuery({
+    queryKey: ['lesson-position', lessonId],
+    queryFn: () => authAPI.lessonPosition(lessonId),
+    retry: false,
+    enabled: Boolean(lessonId),
+  });
+  useEffect(() => {
+    const value = Number(savedPosition.data?.position);
+    if (Number.isFinite(value) && value > 0)
+      window.setTimeout(
+        () => window.scrollTo({ top: value, behavior: 'auto' }),
+        0,
+      );
+  }, [savedPosition.data]);
+  useEffect(
+    () => () => {
+      if (lessonId)
+        void authAPI
+          .saveLessonPosition(lessonId, String(Math.round(window.scrollY)))
+          .catch(() => undefined);
+    },
+    [lessonId],
+  );
   const {
     data: lesson,
     isPending,
@@ -177,6 +200,11 @@ export function LessonPage() {
     queryKey: ['topic-lessons', lesson?.topicId],
     queryFn: () => learningAPI.listLessons(lesson!.topicId),
     enabled: Boolean(lesson?.topicId),
+  });
+  const lessonQuestions = useQuery({
+    queryKey: ['lesson-practice-questions', lessonId],
+    queryFn: () => learningAPI.getLessonQuestions(lessonId),
+    enabled: Boolean(lessonId),
   });
   const complete = useMutation({
     mutationFn: () => authAPI.completeLesson(lessonId),
@@ -202,6 +230,11 @@ export function LessonPage() {
           fallbackMarkdown={lesson.content}
           lessonId={lesson.id}
         />
+        <section className="mt-10 border-t pt-7" aria-labelledby="lesson-practice-heading">
+          <p className="font-bold text-ocean">PUT IT INTO PRACTICE</p>
+          <h2 id="lesson-practice-heading" className="mt-1 text-2xl font-bold">Lesson practice questions</h2>
+          {lessonQuestions.isPending ? <p className="mt-3 text-sm text-slate-500">Loading practice questions…</p> : lessonQuestions.data?.length ? <><p className="mt-2 text-slate-600">Test what you learned with {lessonQuestions.data.length} question{lessonQuestions.data.length === 1 ? '' : 's'} selected for this lesson.</p><PrimaryLink to={`/topics/${lesson.topicId}/practice?lesson=${lesson.id}`}>Start lesson practice</PrimaryLink></> : <p className="mt-2 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">There are no practice questions linked to this lesson yet. You can continue to the next lesson or practise the wider topic.</p>}
+        </section>
         <div className="mt-8 flex flex-wrap gap-3 border-t pt-6">
           <PrimaryLink to={`/topics/${lesson.topicId}/practice`}>
             Practice this topic
@@ -298,13 +331,14 @@ function QuestionCard({
 export function PracticePage() {
   const { topicId = '' } = useParams();
   const [searchParams] = useSearchParams();
+  const lessonID = searchParams.get('lesson') ?? '';
   const {
     data: questions,
     isPending,
     error,
   } = useQuery({
-    queryKey: ['questions', topicId],
-    queryFn: () => learningAPI.getQuestions(topicId),
+    queryKey: ['questions', topicId, lessonID],
+    queryFn: () => lessonID ? learningAPI.getLessonQuestions(lessonID) : learningAPI.getQuestions(topicId),
   });
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
@@ -335,10 +369,10 @@ export function PracticePage() {
   const question = questions[index];
   return (
     <>
-      <BackLink to={`/topics/${topicId}`}>Topic</BackLink>
+      <BackLink to={lessonID ? `/lessons/${lessonID}` : `/topics/${topicId}`}>{lessonID ? 'Lesson' : 'Topic'}</BackLink>
       <div className="mb-4 flex justify-between">
         <div>
-          <p className="font-bold text-ocean">PRACTICE</p>
+          <p className="font-bold text-ocean">{lessonID ? 'LESSON PRACTICE' : 'PRACTICE'}</p>
           <h1 className="text-2xl font-bold">
             Question {index + 1} of {questions.length}
           </h1>

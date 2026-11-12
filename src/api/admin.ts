@@ -120,6 +120,13 @@ export interface MediaAsset {
 export type ContentType = 'topics' | 'lessons' | 'questions' | 'scenarios';
 export type MediaContentType = 'lesson' | 'question' | 'scenario';
 export type ContentAction = 'submit-review' | 'publish' | 'archive';
+export interface AdminListOptions {
+  limit?: number;
+  offset?: number;
+  status?: ContentStatus | '';
+  topic?: string;
+  search?: string;
+}
 export interface MediaUploadMetadata {
   altText: string;
   caption: string;
@@ -127,7 +134,25 @@ export interface MediaUploadMetadata {
   language: string;
   sourceReference: string;
 }
-export interface AdminLessonQuiz { id:string;lessonId:string;title:string;questions:Array<{id:string;text:string;type:'single_select'|'multi_select';options:Array<{id:string;text:string;correct:boolean}>;explanation:string;mediaId?:string}> }
+export interface AdminLessonQuiz {
+  id: string;
+  lessonId: string;
+  title: string;
+  questions: Array<{
+    id: string;
+    text: string;
+    type: 'single_select' | 'multi_select';
+    options: Array<{ id: string; text: string; correct: boolean }>;
+    explanation: string;
+    mediaId?: string;
+    sourceQuestionId?: string;
+  }>;
+}
+export interface AdminLessonQuizRevision {
+  version: number;
+  quiz: AdminLessonQuiz;
+  createdAt: string;
+}
 
 function uploadMedia(
   file: File,
@@ -177,8 +202,22 @@ const transition = (
   });
 
 export const adminAPI = {
-	lessonQuiz:(id:string)=>request<AdminLessonQuiz>(`/api/v1/admin/lesson-quizzes/${id}`),
-	saveLessonQuiz:(value:AdminLessonQuiz)=>request<AdminLessonQuiz>(`/api/v1/admin/lesson-quizzes/${value.id}`,{method:'PUT',body:JSON.stringify(value)}),
+  lessonQuiz: (id: string) =>
+    request<AdminLessonQuiz>(`/api/v1/admin/lesson-quizzes/${id}`),
+  saveLessonQuiz: (value: AdminLessonQuiz) =>
+    request<AdminLessonQuiz>(`/api/v1/admin/lesson-quizzes/${value.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(value),
+    }),
+  lessonQuizRevisions: (id: string) =>
+    request<{ revisions: AdminLessonQuizRevision[] }>(
+      `/api/v1/admin/lesson-quizzes/${id}/revisions`,
+    ).then((v) => v.revisions),
+  restoreLessonQuiz: (id: string, version: number) =>
+    request<AdminLessonQuiz>(`/api/v1/admin/lesson-quizzes/${id}/restore`, {
+      method: 'PUT',
+      body: JSON.stringify({ version }),
+    }),
   dashboard: () => request<AdminDashboard>('/api/v1/admin/dashboard'),
   media: (
     options: { search?: string; kind?: string; status?: string } = {},
@@ -208,6 +247,8 @@ export const adminAPI = {
       body: JSON.stringify({ ids }),
     }),
   topics: () => request<{ topics: AdminTopic[] }>('/api/v1/admin/topics'),
+  listTopics: (options: AdminListOptions = {}) =>
+    request<{ topics: AdminTopic[] }>(`/api/v1/admin/topics${adminListQuery(options)}`),
   createTopic: (value: AdminTopic) =>
     request<AdminTopic>('/api/v1/admin/topics', {
       method: 'POST',
@@ -224,6 +265,8 @@ export const adminAPI = {
   revisions: (type: ContentType, id: string) =>
     request<{ revisions: Revision[] }>(`/api/v1/admin/${type}/${id}/revisions`),
   lessons: () => request<{ lessons: AdminLesson[] }>('/api/v1/admin/lessons'),
+  listLessons: (options: AdminListOptions = {}) =>
+    request<{ lessons: AdminLesson[] }>(`/api/v1/admin/lessons${adminListQuery(options)}`),
   createLesson: (value: AdminLesson) =>
     request<AdminLesson>('/api/v1/admin/lessons', {
       method: 'POST',
@@ -234,8 +277,11 @@ export const adminAPI = {
       method: 'PATCH',
       body: JSON.stringify(value),
     }),
-  questions: () =>
-    request<{ questions: AdminQuestion[] }>('/api/v1/admin/questions'),
+  lessonPracticeQuestions: (lessonID: string) => request<{ ids: string[] }>(`/api/v1/admin/lessons/${lessonID}/practice-questions`).then((value) => value.ids),
+  setLessonPracticeQuestions: (lessonID: string, ids: string[]) => request<void>(`/api/v1/admin/lessons/${lessonID}/practice-questions`, { method: 'PUT', body: JSON.stringify({ ids }) }),
+  questions: () => request<{ questions: AdminQuestion[] }>('/api/v1/admin/questions'),
+  listQuestions: (options: AdminListOptions = {}) =>
+    request<{ questions: AdminQuestion[] }>(`/api/v1/admin/questions${adminListQuery(options)}`),
   createQuestion: (value: AdminQuestion) =>
     request<AdminQuestion>('/api/v1/admin/questions', {
       method: 'POST',
@@ -246,8 +292,9 @@ export const adminAPI = {
       method: 'PATCH',
       body: JSON.stringify(value),
     }),
-  scenarios: () =>
-    request<{ scenarios: AdminScenario[] }>('/api/v1/admin/scenarios'),
+  scenarios: () => request<{ scenarios: AdminScenario[] }>('/api/v1/admin/scenarios'),
+  listScenarios: (options: AdminListOptions = {}) =>
+    request<{ scenarios: AdminScenario[] }>(`/api/v1/admin/scenarios${adminListQuery(options)}`),
   createScenario: (value: AdminScenario) =>
     request<AdminScenario>('/api/v1/admin/scenarios', {
       method: 'POST',
@@ -259,3 +306,11 @@ export const adminAPI = {
       body: JSON.stringify(value),
     }),
 };
+
+function adminListQuery(options: AdminListOptions) {
+  const query = new URLSearchParams();
+  Object.entries(options).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return query.size ? `?${query}` : '';
+}

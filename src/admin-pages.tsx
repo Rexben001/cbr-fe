@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { adminAPI } from './api/admin';
 import { authAPI } from './api/auth';
 import { AdminLayout } from './admin-ui';
@@ -80,6 +80,20 @@ export function AdminDashboardPage() {
           </div>
         </section>
       </div>
+      <section className="admin-card mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold">Create content</h2>
+            <p className="mt-1 text-sm text-slate-600">Start with the content type you need. New items remain drafts until they are published.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link className="admin-secondary-button" to="/admin/topics">New topic</Link>
+            <Link className="admin-secondary-button" to="/admin/lessons">New lesson</Link>
+            <Link className="admin-secondary-button" to="/admin/questions">New question</Link>
+            <Link className="admin-secondary-button" to="/admin/scenarios">New scenario</Link>
+          </div>
+        </div>
+      </section>
     </AdminLayout>
   );
 }

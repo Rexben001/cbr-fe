@@ -98,6 +98,10 @@ export const learningAPI = {
     request<{ questions: QuestionView[] }>(
       `/api/v1/topics/${topicID}/questions?limit=5`,
     ).then(({ questions }) => questions),
+  getLessonQuestions: (lessonID: string) =>
+    request<{ questions: QuestionView[] }>(
+      `/api/v1/lessons/${lessonID}/practice-questions?limit=20`,
+    ).then(({ questions }) => questions),
   answer: (questionId: string, answerId: string | string[]) =>
     request<AnswerResult>('/api/v1/answers', {
       method: 'POST',

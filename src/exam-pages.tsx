@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Flag, Grid2X2, Send } from 'lucide-react';
 import { examsAPI } from './api/exams';
+import { APIError } from './api/client';
 import { ErrorState, Loading } from './components';
 import { HistoricalMedia } from './media';
 import { RichTextContent } from './rich-text';
@@ -20,6 +22,10 @@ export function ExamIntroPage() {
   const start = useMutation({
     mutationFn: examsAPI.start,
     onSuccess: (exam) => navigate(`/exams/${exam.id}`),
+    onError: (error) => {
+      if (error instanceof APIError && error.status === 409)
+        void active.refetch();
+    },
   });
   if (active.data) return <Navigate to={`/exams/${active.data.id}`} replace />;
   return (
@@ -29,7 +35,7 @@ export function ExamIntroPage() {
       <p className="mt-4">
         50 questions · 30 minutes · pass from 44 correct answers.
       </p>
-      {start.error && <ErrorState message="Exam could not start." />}
+      {start.error && <ErrorState message={start.error instanceof APIError ? start.error.message : 'Exam could not start.'} />}
       <button
         onClick={() => start.mutate()}
         disabled={start.isPending}
@@ -132,6 +138,10 @@ export function ExamPage() {
       navigate(`/exams/${id}/results`);
     },
   });
+  const flag = useMutation({
+    mutationFn: ({ questionID, flagged }: { questionID: string; flagged: boolean }) => examsAPI.flag(id, questionID, flagged),
+    onSuccess: (exam) => client.setQueryData(['exam', id], exam),
+  });
   const submitExam = submit.mutate;
   useEffect(() => {
     if (!data) return;
@@ -149,6 +159,10 @@ export function ExamPage() {
   useEffect(() => {
     if (data && seconds === 0 && !submit.isPending) submitExam();
   }, [data, seconds, submit.isPending, submitExam]);
+  useEffect(() => {
+    if (error instanceof APIError && error.status === 410)
+      navigate(`/exams/${id}/results`, { replace: true });
+  }, [error, id, navigate]);
   if (isPending) return <Loading />;
   if (error || !data)
     return (
@@ -157,17 +171,25 @@ export function ExamPage() {
   const question = data.questions[index];
   const selected = question.selectedAnswerId;
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-4 flex justify-between">
-        <strong>
-          Question {index + 1}/{data.totalQuestions}
-        </strong>
-        <strong aria-live="polite">{clock(Math.max(0, seconds))}</strong>
-      </div>
-      <div className="rounded-3xl bg-white p-6 shadow-sm">
-        <RichTextContent value={question.text} />
-        <HistoricalMedia assets={question.media ?? []} />
-        <div className="mt-5 space-y-3">
+    <main className="exam-shell">
+      <header className="exam-topbar">
+        <Link to="/dashboard" className="exam-brand" aria-label="Leave exam to dashboard">RijFiks</Link>
+        <p aria-live="polite">Resterende tijd <strong>{clock(Math.max(0, seconds))}</strong></p>
+        <div className="exam-top-actions">
+          <button type="button" disabled={flag.isPending} onClick={() => flag.mutate({ questionID: question.id, flagged: !question.flagged })} aria-pressed={question.flagged} aria-label={question.flagged ? 'Remove question flag' : 'Flag current question'} className={question.flagged ? 'exam-icon-active' : 'exam-icon'}><Flag fill={question.flagged ? 'currentColor' : 'none'} /></button>
+          <details className="exam-overview"><summary aria-label="Open question overview"><Grid2X2 /></summary><div className="exam-overview-panel" aria-label="Question overview">{data.questions.map((item, itemIndex) => <button type="button" key={item.id} onClick={() => setIndex(itemIndex)} aria-label={`Question ${itemIndex + 1}${item.selectedAnswerId ? ' answered' : ' unanswered'}${item.flagged ? ' flagged' : ''}`} className={index === itemIndex ? 'current' : item.flagged ? 'flagged' : item.selectedAnswerId ? 'answered' : ''}>{itemIndex + 1}</button>)}</div></details>
+          <button type="button" className="exam-icon" onClick={() => { if (window.confirm('Leave this exam? Your saved answers will remain available until the timer ends.')) navigate('/exams'); }} aria-label="Leave exam"><Send /></button>
+        </div>
+      </header>
+      <section className="exam-workspace">
+        <div className="exam-visual" aria-label="Question media">
+          <HistoricalMedia assets={question.media ?? []} />
+          {!question.media?.length && <div className="exam-visual-placeholder">Visual for this question</div>}
+        </div>
+        <div className="exam-question-area">
+          <div className="exam-question-number">Vraag {index + 1} van {data.totalQuestions}</div>
+          <div className="exam-prompt"><RichTextContent value={question.text} /></div>
+          <div className="exam-answers" role="radiogroup" aria-label="Answer choices">
           {question.options.map((option) => (
             <button
               key={option.id}
@@ -175,29 +197,21 @@ export function ExamPage() {
                 save.mutate({ questionID: question.id, answerID: option.id })
               }
               disabled={save.isPending}
-              className={`block w-full rounded-xl border p-4 text-left ${selected === option.id ? 'border-ocean bg-sky-50' : 'hover:border-ocean'}`}
+              role="radio"
+              aria-checked={selected === option.id}
+              className={`exam-answer ${selected === option.id ? 'exam-answer-selected' : ''}`}
             >
+              <span className="exam-radio" aria-hidden="true" />
               {option.text}
             </button>
           ))}
         </div>
-      </div>
-      <div className="mt-5 flex justify-between">
-        <button
-          onClick={() => setIndex(Math.max(0, index - 1))}
-          disabled={index === 0}
-        >
-          Previous
-        </button>
-        <button
-          onClick={() =>
-            setIndex(Math.min(data.questions.length - 1, index + 1))
-          }
-          disabled={index === data.questions.length - 1}
-        >
-          Next
-        </button>
-        <button
+        </div>
+      </section>
+      <footer className="exam-footer">
+        <button type="button" className="exam-nav exam-nav-previous" onClick={() => setIndex(Math.max(0, index - 1))} disabled={index === 0}><ChevronLeft /> Vorige</button>
+        <span>Vraag <strong>{index + 1}</strong> van <strong>{data.totalQuestions}</strong></span>
+        {index < data.questions.length - 1 ? <button type="button" className="exam-nav exam-nav-next" onClick={() => setIndex(Math.min(data.questions.length - 1, index + 1))}>Volgende <ChevronRight /></button> : <button
           onClick={() => {
             if (
               window.confirm(
@@ -207,13 +221,13 @@ export function ExamPage() {
               submit.mutate();
           }}
           disabled={submit.isPending}
-          className="rounded-xl bg-ocean px-4 py-3 font-bold text-white"
+          className="exam-nav exam-nav-next"
         >
-          Submit exam
-        </button>
-      </div>
+          Exam afronden
+        </button>}
+      </footer>
       {submit.error && <ErrorState message="Exam could not be submitted." />}
-    </div>
+    </main>
   );
 }
 

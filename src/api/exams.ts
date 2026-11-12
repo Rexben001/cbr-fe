@@ -15,6 +15,7 @@ export interface ExamQuestion {
   difficulty: Difficulty;
   media: ExamMedia[];
   selectedAnswerId?: string;
+  flagged: boolean;
 }
 export interface Exam {
   id: string;
@@ -67,6 +68,8 @@ export const examsAPI = {
       method: 'PUT',
       body: JSON.stringify({ answerId }),
     }),
+  flag: (examID: string, questionID: string, flagged: boolean) =>
+    request<Exam>(`/api/v1/exams/${examID}/flags/${questionID}`, { method: 'PUT', body: JSON.stringify({ flagged }) }),
   submit: (id: string) =>
     request<ExamResult>(`/api/v1/exams/${id}/submit`, { method: 'POST' }),
   history: () =>

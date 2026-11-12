@@ -33,6 +33,16 @@ export function Shell({ children }: PropsWithChildren) {
   });
   const adminPage =
     learner?.role === 'admin' && location.pathname.startsWith('/admin');
+  const immersiveExam = /^\/exams\/[^/]+$/.test(location.pathname);
+  if (immersiveExam) return <>{children}</>;
+  // AdminLayout owns navigation in Studio. Rendering the learner header here
+  // used to duplicate the same navigation above the sidebar.
+  if (adminPage)
+    return (
+      <div className="min-h-screen bg-slate-100 text-ink">
+        <main className="admin-app-frame">{children}</main>
+      </div>
+    );
   return (
     <div className="min-h-screen bg-slate-50 text-ink">
       <header className="border-b border-slate-200 bg-white">
@@ -125,22 +135,6 @@ export function Shell({ children }: PropsWithChildren) {
             )}
           </nav>
         </div>
-        {adminPage && (
-          <nav
-            aria-label="Admin sections"
-            className="border-t border-slate-100"
-          >
-            <div className="mx-auto flex max-w-6xl gap-4 overflow-x-auto px-4 py-3 text-sm font-semibold text-slate-600">
-              <NavLink end to="/admin">
-                Overview
-              </NavLink>
-              <NavLink to="/admin/topics">Topics</NavLink>
-              <NavLink to="/admin/lessons">Lessons</NavLink>
-              <NavLink to="/admin/questions">Questions</NavLink>
-              <NavLink to="/admin/scenarios">Scenarios</NavLink>
-            </div>
-          </nav>
-        )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
     </div>
