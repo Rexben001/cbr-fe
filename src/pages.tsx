@@ -9,11 +9,12 @@ import {
 } from 'react-router-dom';
 import { learningAPI } from './api/learning';
 import { authAPI } from './api/auth';
-import type { QuestionView, QuizResult, QuizView } from './api/types';
+import type { QuizResult, QuizView } from './api/types';
 import { BackLink, ErrorState, Loading, PrimaryLink } from './components';
 import { LessonRenderer } from './lesson-blocks';
 import { LearnerMedia } from './media';
 import { RichTextContent } from './rich-text';
+import { PracticeSession } from './practice-session';
 
 const quizKey = (id: string) => `roadready.quiz.${id}`;
 const resultKey = (id: string) => `roadready.result.${id}`;
@@ -201,6 +202,7 @@ export function LessonPage() {
     queryFn: () => learningAPI.listLessons(lesson!.topicId),
     enabled: Boolean(lesson?.topicId),
   });
+  const topics = useQuery({ queryKey: ['topics'], queryFn: learningAPI.listTopics });
   const lessonQuestions = useQuery({
     queryKey: ['lesson-practice-questions', lessonId],
     queryFn: () => learningAPI.getLessonQuestions(lessonId),
@@ -233,12 +235,9 @@ export function LessonPage() {
         <section className="mt-10 border-t pt-7" aria-labelledby="lesson-practice-heading">
           <p className="font-bold text-ocean">PUT IT INTO PRACTICE</p>
           <h2 id="lesson-practice-heading" className="mt-1 text-2xl font-bold">Lesson practice questions</h2>
-          {lessonQuestions.isPending ? <p className="mt-3 text-sm text-slate-500">Loading practice questions…</p> : lessonQuestions.data?.length ? <><p className="mt-2 text-slate-600">Test what you learned with {lessonQuestions.data.length} question{lessonQuestions.data.length === 1 ? '' : 's'} selected for this lesson.</p><PrimaryLink to={`/topics/${lesson.topicId}/practice?lesson=${lesson.id}`}>Start lesson practice</PrimaryLink></> : <p className="mt-2 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">There are no practice questions linked to this lesson yet. You can continue to the next lesson or practise the wider topic.</p>}
+          {lessonQuestions.isPending ? <p className="mt-3 text-sm text-slate-500">Loading practice questions…</p> : lessonQuestions.error ? <ErrorState message="Lesson practice could not be loaded." /> : <PracticeSession questions={lessonQuestions.data ?? []} storageKey={`lesson-practice:${lesson.id}`} heading={lesson.title} context={[topics.data?.find((item) => item.id === lesson.topicId)?.title ?? 'Topic', lesson.title, 'Practice']} inline />}
         </section>
         <div className="mt-8 flex flex-wrap gap-3 border-t pt-6">
-          <PrimaryLink to={`/topics/${lesson.topicId}/practice`}>
-            Practice this topic
-          </PrimaryLink>
           <button
             onClick={() => complete.mutate()}
             disabled={complete.isPending || Boolean(complete.data)}
@@ -284,50 +283,6 @@ export function LessonPage() {
   );
 }
 
-function QuestionCard({
-  question,
-  selected,
-  onSelect,
-  result,
-}: {
-  question: QuestionView;
-  selected?: string | string[];
-  onSelect: (id: string) => void;
-  result?: { correct: boolean; explanation: string };
-}) {
-  return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm">
-      <div className="mb-4 flex justify-between gap-3">
-        <RichTextContent value={question.text} />
-        <span className="h-fit rounded-full bg-slate-100 px-2 py-1 text-xs font-bold uppercase text-slate-500">
-          {question.difficulty}
-        </span>
-      </div>
-      <LearnerMedia type="question" contentId={question.id} />
-      <div className="space-y-2">
-        {question.options.map((option) => (
-          <button
-            key={option.id}
-            disabled={Boolean(result)}
-            onClick={() => onSelect(option.id)}
-            className={`w-full rounded-xl border p-3 text-left transition ${(Array.isArray(selected) ? selected.includes(option.id) : selected === option.id) ? 'border-ocean bg-sky' : 'hover:border-teal-300'} ${result ? 'cursor-default' : ''}`}
-          >
-            {option.text}
-          </button>
-        ))}
-      </div>
-      {result && (
-        <div
-          className={`mt-4 rounded-xl p-3 ${result.correct ? 'bg-teal-50 text-teal-900' : 'bg-orange-50 text-orange-900'}`}
-        >
-          <strong>{result.correct ? 'Correct — +10 XP' : 'Not quite'}</strong>
-          <RichTextContent value={result.explanation} />
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function PracticePage() {
   const { topicId = '' } = useParams();
   const [searchParams] = useSearchParams();
@@ -340,122 +295,27 @@ export function PracticePage() {
     queryKey: ['questions', topicId, lessonID],
     queryFn: () => lessonID ? learningAPI.getLessonQuestions(lessonID) : learningAPI.getQuestions(topicId),
   });
-  const [index, setIndex] = useState(0);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [reportDescription, setReportDescription] = useState('');
-  const answer = useMutation({
-    mutationFn: () => learningAPI.answer(questions![index].id, selected),
-  });
-  useEffect(() => {
-    const id = searchParams.get('question');
-    const found = questions?.findIndex((question) => question.id === id) ?? -1;
-    if (found >= 0) setIndex(found);
-  }, [questions, searchParams]);
-  const bookmark = useMutation({
-    mutationFn: () => learningAPI.toggleBookmark(questions![index].id),
-  });
-  const report = useMutation({
-    mutationFn: () =>
-      learningAPI.reportQuestion(
-        questions![index].id,
-        'other',
-        reportDescription,
-      ),
-    onSuccess: () => setReportDescription(''),
-  });
+  const topics = useQuery({ queryKey: ['topics'], queryFn: learningAPI.listTopics });
+  const lessons = useQuery({ queryKey: ['lessons', topicId], queryFn: () => learningAPI.listLessons(topicId), enabled: Boolean(lessonID) });
   if (isPending) return <Loading />;
   if (error || !questions?.length)
     return <ErrorState message="Practice questions could not be loaded." />;
-  const question = questions[index];
+  const topicName = topics.data?.find((item) => item.id === topicId)?.title ?? 'Topic';
+  const lessonName = lessons.data?.find((item) => item.id === lessonID)?.title;
   return (
     <>
       <BackLink to={lessonID ? `/lessons/${lessonID}` : `/topics/${topicId}`}>{lessonID ? 'Lesson' : 'Topic'}</BackLink>
-      <div className="mb-4 flex justify-between">
-        <div>
-          <p className="font-bold text-ocean">{lessonID ? 'LESSON PRACTICE' : 'PRACTICE'}</p>
-          <h1 className="text-2xl font-bold">
-            Question {index + 1} of {questions.length}
-          </h1>
-        </div>
-        <span className="text-slate-500">
-          {Math.round((index / questions.length) * 100)}%
-        </span>
-      </div>
-      <QuestionCard
-        question={question}
-        selected={selected}
-        onSelect={(id) =>
-          setSelected((current) =>
-            question.type === 'multiple_choice'
-              ? current.includes(id)
-                ? current.filter((value) => value !== id)
-                : [...current, id]
-              : [id],
-          )
-        }
-        result={answer.data}
-      />
-      <div className="mt-5 flex justify-between">
-        <button
-          className="rounded-xl bg-ocean px-4 py-3 font-bold text-white disabled:opacity-50"
-          disabled={
-            !selected.length || answer.isPending || Boolean(answer.data)
-          }
-          onClick={() => answer.mutate()}
-        >
-          Check answer
-        </button>
-        {answer.data && (
-          <button
-            className="rounded-xl border border-ocean px-4 py-3 font-bold text-ocean"
-            onClick={() => {
-              setIndex((index + 1) % questions.length);
-              setSelected([]);
-              answer.reset();
-            }}
-          >
-            Next question
-          </button>
-        )}
-      </div>
-      <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
-        <button
-          type="button"
-          className="font-bold text-ocean"
-          onClick={() => bookmark.mutate()}
-        >
-          {bookmark.data?.bookmarked ? 'Bookmarked' : 'Bookmark question'}
-        </button>
-        <details className="text-sm">
-          <summary className="cursor-pointer font-bold text-slate-600">
-            Report a problem
-          </summary>
-          <div className="mt-2 flex gap-2">
-            <input
-              className="admin-field mt-0"
-              value={reportDescription}
-              onChange={(event) => setReportDescription(event.target.value)}
-              placeholder="Describe the issue"
-            />
-            <button
-              type="button"
-              disabled={!reportDescription.trim() || report.isPending}
-              className="admin-secondary-button"
-              onClick={() => report.mutate()}
-            >
-              Send report
-            </button>
-          </div>
-          {report.isSuccess && (
-            <p className="mt-2 text-teal-700">Report sent.</p>
-          )}
-        </details>
-      </div>
-      {answer.error && (
-        <ErrorState message="Your answer could not be checked. Try again." />
-      )}
+      <PracticeSession questions={questions} storageKey={`practice:${lessonID || topicId}`} heading={lessonName ?? `${topicName} practice`} context={lessonName ? [topicName, lessonName, 'Practice'] : [topicName, 'Practice']} initialQuestionID={searchParams.get('question') ?? undefined} />
     </>
   );
+}
+
+function QuestionCard({ question, selected, onSelect }: {
+  question: import('./api/types').QuestionView;
+  selected?: string;
+  onSelect: (id: string) => void;
+}) {
+  return <div className="rounded-2xl border bg-white p-5 shadow-sm"><div className="mb-4 flex items-start justify-between gap-3"><RichTextContent value={question.text} /><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold uppercase text-slate-500">{question.difficulty}</span></div><LearnerMedia type="question" contentId={question.id} /><div className="mt-4 space-y-2">{question.options.map((option) => <button key={option.id} type="button" onClick={() => onSelect(option.id)} className={`w-full rounded-xl border p-3 text-left transition ${selected === option.id ? 'border-ocean bg-sky' : 'hover:border-teal-300'}`}>{option.text}</button>)}</div></div>;
 }
 
 export function StartQuizPage() {

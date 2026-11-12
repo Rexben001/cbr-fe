@@ -163,6 +163,14 @@ export function ExamPage() {
     if (error instanceof APIError && error.status === 410)
       navigate(`/exams/${id}/results`, { replace: true });
   }, [error, id, navigate]);
+  useEffect(() => {
+    const warnBeforeExit = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeExit);
+    return () => window.removeEventListener('beforeunload', warnBeforeExit);
+  }, []);
   if (isPending) return <Loading />;
   if (error || !data)
     return (
@@ -173,7 +181,7 @@ export function ExamPage() {
   return (
     <main className="exam-shell">
       <header className="exam-topbar">
-        <Link to="/dashboard" className="exam-brand" aria-label="Leave exam to dashboard">RijFiks</Link>
+        <span className="exam-brand" aria-label="RijFiks active exam">RijFiks · Category B Practice Exam</span>
         <p aria-live="polite">Resterende tijd <strong>{clock(Math.max(0, seconds))}</strong></p>
         <div className="exam-top-actions">
           <button type="button" disabled={flag.isPending} onClick={() => flag.mutate({ questionID: question.id, flagged: !question.flagged })} aria-pressed={question.flagged} aria-label={question.flagged ? 'Remove question flag' : 'Flag current question'} className={question.flagged ? 'exam-icon-active' : 'exam-icon'}><Flag fill={question.flagged ? 'currentColor' : 'none'} /></button>
