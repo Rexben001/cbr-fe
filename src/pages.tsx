@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Clock3, Play, Sparkles, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock3, Play, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   Link,
@@ -15,89 +15,14 @@ import { LessonRenderer } from './lesson-blocks';
 import { LearnerMedia } from './media';
 import { RichTextContent } from './rich-text';
 import { PracticeSession } from './practice-session';
+import { HighlightableLesson } from './lesson-highlights';
+import { LearnerHome } from './learner-home';
 
 const quizKey = (id: string) => `roadready.quiz.${id}`;
 const resultKey = (id: string) => `roadready.result.${id}`;
 
 export function Dashboard() {
-  const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
-
-  const {
-    data: topics,
-    isPending,
-    error,
-  } = useQuery({ queryKey: ['topics'], queryFn: learningAPI.listTopics });
-  if (isPending) return <Loading />;
-  if (error)
-    return (
-      <ErrorState message="Topics could not be loaded. Is the Go API running?" />
-    );
-  return (
-    <>
-      <section className="mb-9 rounded-3xl bg-ink p-7 text-white shadow-sm sm:p-10">
-        <p className="mb-2 font-bold text-sun">CATEGORY B THEORY</p>
-        <h1 className="max-w-xl text-3xl font-bold sm:text-5xl">
-          Build calm, confident road judgement.
-        </h1>
-        <p className="mt-4 max-w-xl text-slate-200">
-          Short lessons. Clear Dutch road rules. Practical questions when you
-          are ready.
-        </p>
-        <div className="mt-6 h-2 max-w-md overflow-hidden rounded-full bg-white/20">
-          <div className="h-full w-1/12 rounded-full bg-sun" />
-        </div>
-        <p className="mt-2 text-sm text-slate-300">
-          Your learning path starts here
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            to="/scenarios"
-            className="inline-block rounded-xl bg-sun px-4 py-3 font-bold text-ink"
-          >
-            Play driving scenarios →
-          </Link>
-          {!me.data?.email && (
-            <Link
-              to="/register"
-              className="inline-block rounded-xl border border-white/50 px-4 py-3 font-bold text-white hover:bg-white/10"
-            >
-              Create free account
-            </Link>
-          )}
-        </div>
-      </section>
-      <section>
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <p className="font-bold text-ocean">LEARNING PATH</p>
-            <h2 className="text-2xl font-bold">Choose a topic</h2>
-          </div>
-          <span className="rounded-full bg-sky px-3 py-1 text-sm font-semibold text-ocean">
-            {topics.length} topics
-          </span>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {topics.map((topic, i) => (
-            <Link
-              key={topic.id}
-              to={`/topics/${topic.id}`}
-              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
-            >
-              <div className="flex justify-between">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-sky font-bold text-ocean">
-                  {i + 1}
-                </span>
-                <Sparkles className="text-sun" />
-              </div>
-              <h3 className="mt-5 text-xl font-bold">{topic.title}</h3>
-              <p className="mt-2 text-slate-600">{topic.description}</p>
-              <p className="mt-5 font-semibold text-ocean">Explore topic →</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </>
-  );
+  return <LearnerHome />;
 }
 
 export function TopicPage() {
@@ -163,6 +88,7 @@ export function TopicPage() {
 
 export function LessonPage() {
   const { lessonId = '' } = useParams();
+  const [lessonSearchParams] = useSearchParams();
   useEffect(() => {
     if (lessonId) void authAPI.startLesson(lessonId).catch(() => undefined);
   }, [lessonId]);
@@ -226,12 +152,14 @@ export function LessonPage() {
       <div className="rounded-3xl bg-white p-6 shadow-sm sm:p-10">
         <p className="font-bold text-ocean">LESSON</p>
         <h1 className="mb-6 mt-1 text-3xl font-bold">{lesson.title}</h1>
-        <LearnerMedia type="lesson" contentId={lesson.id} />
-        <LessonRenderer
-          document={lesson.document}
-          fallbackMarkdown={lesson.content}
-          lessonId={lesson.id}
-        />
+        <HighlightableLesson lessonId={lesson.id} focusID={lessonSearchParams.get('highlight') ?? undefined}>
+          <LearnerMedia type="lesson" contentId={lesson.id} />
+          <LessonRenderer
+            document={lesson.document}
+            fallbackMarkdown={lesson.content}
+            lessonId={lesson.id}
+          />
+        </HighlightableLesson>
         <section className="mt-10 border-t pt-7" aria-labelledby="lesson-practice-heading">
           <p className="font-bold text-ocean">PUT IT INTO PRACTICE</p>
           <h2 id="lesson-practice-heading" className="mt-1 text-2xl font-bold">Lesson practice questions</h2>

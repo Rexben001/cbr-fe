@@ -94,6 +94,11 @@ export const learningAPI = {
     ),
   getLesson: (lessonID: string) =>
     request<Lesson>(`/api/v1/lessons/${lessonID}`),
+  search: (query: string, topic = '') => request<{ results: import('./types').LearningSearchResult[] }>(`/api/v1/search?q=${encodeURIComponent(query)}&topic=${encodeURIComponent(topic)}`).then((value) => value.results),
+  highlights: (lessonID = '') => request<{highlights: import('./types').LessonHighlight[]}>(lessonID ? `/api/v1/lessons/${lessonID}/highlights` : '/api/v1/users/me/highlights').then((value) => value.highlights),
+  createHighlight: (lessonID: string, value: Omit<import('./types').LessonHighlight,'id'|'lessonId'|'lessonTitle'|'lessonVersion'|'currentLessonVersion'|'updatedAt'>) => request<import('./types').LessonHighlight>(`/api/v1/lessons/${lessonID}/highlights`,{method:'POST',body:JSON.stringify(value)}),
+  updateHighlight: (id:string,color:string) => request<import('./types').LessonHighlight>(`/api/v1/highlights/${id}`,{method:'PUT',body:JSON.stringify({color})}),
+  deleteHighlight: (id:string) => request<void>(`/api/v1/highlights/${id}`,{method:'DELETE'}),
   getQuestions: (topicID: string) =>
     request<{ questions: QuestionView[] }>(
       `/api/v1/topics/${topicID}/questions?limit=5`,

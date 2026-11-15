@@ -89,6 +89,7 @@ export function PracticeAnalyticsCard() {
           Bookmarks →
         </Link>
       </div>
+      {q.data.topics.length>0&&<div className="mt-5 border-t pt-4"><h3 className="font-bold">Topics to focus on</h3><div className="mt-2 space-y-2">{[...q.data.topics].sort((a,b)=>a.accuracy-b.accuracy).slice(0,3).map((topic)=><div key={topic.topic} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>{topic.topic}</span><span><strong>{Math.round(topic.accuracy)}%</strong> · {topic.needsPractice} to review</span></div>)}</div><p className="mt-3 text-sm text-slate-600">Start with the lowest-accuracy topic, then retry saved mistakes before taking another mock exam.</p></div>}
     </section>
   );
 }

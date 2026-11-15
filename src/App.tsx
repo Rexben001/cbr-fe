@@ -27,6 +27,9 @@ import {
 } from './admin-topic-revisions';
 import { AdminMediaPage } from './admin-media';
 import { PracticeProgressPage } from './practice-progress';
+import { SearchPage } from './learner-search';
+import { HighlightsPage } from './lesson-highlights';
+import { RoadmapPage } from './learning-roadmap';
 
 export default function App() {
   return (
@@ -36,6 +39,9 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/highlights" element={<HighlightsPage />} />
+        <Route path="/roadmap" element={<RoadmapPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/topics" element={<AdminTopicsPage />} />
         <Route

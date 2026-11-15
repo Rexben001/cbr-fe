@@ -12,6 +12,8 @@ import {
   LogOut,
   Trophy,
   UserPlus,
+  Search,
+  Highlighter,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, NavLink, useLocation } from 'react-router-dom';
@@ -84,12 +86,14 @@ export function Shell({ children }: PropsWithChildren) {
               <ClipboardCheck className="inline mr-1" size={16} />
               Exam
             </NavLink>
+            <NavLink to="/search" aria-label="Search lessons" className={({isActive})=>isActive?'text-ocean':'text-slate-500'}><Search size={17}/></NavLink>
             <span className="hidden text-slate-400 lg:inline">
               <CircleHelp className="inline mr-1" size={16} />
               CBR B
             </span>
             {learner ? (
               <>
+                <NavLink to="/highlights" aria-label="My highlights" className={({isActive})=>`hidden sm:inline ${isActive?'text-ocean':'text-slate-500'}`}><Highlighter size={17}/></NavLink>
                 {learner.role === 'admin' && (
                   <NavLink
                     to="/admin"

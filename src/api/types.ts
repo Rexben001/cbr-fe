@@ -103,6 +103,8 @@ export interface QuestionReport {
   status: string;
   createdAt: string;
 }
+export interface LearningSearchResult { type: 'topic' | 'lesson'; id: string; topicId: string; title: string; description: string }
+export interface LessonHighlight { id: string; lessonId: string; lessonTitle: string; selectedText: string; prefixText: string; suffixText: string; startOffset: number; endOffset: number; color: 'yellow'|'green'|'blue'; lessonVersion: number; currentLessonVersion: number; updatedAt: string }
 export interface QuizView {
   id: string;
   topicId: string;

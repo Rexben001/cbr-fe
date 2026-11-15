@@ -21,6 +21,8 @@ export function LearningRoadmap() {
     return <ErrorState message="Roadmap could not be loaded." />;
   const done = q.data.filter((x) => x.completed).length;
   const current = q.data.find((x) => x.unlocked && !x.completed);
+  const completion = q.data.length ? done / q.data.length : 0;
+  const currentStage = done === 0 ? 0 : completion < .5 ? 1 : completion < 1 ? 2 : 3;
   return (
     <section className="mt-7 overflow-hidden rounded-3xl border bg-gradient-to-br from-sky via-white to-emerald-50 p-5">
       <p className="font-bold text-ocean">YOUR ROAD TO EXAM READY</p>
@@ -29,14 +31,14 @@ export function LearningRoadmap() {
         {done}/{q.data.length} lessons completed. Preparation progress is not a
         pass guarantee.
       </p>
-      <div className="mt-5 flex gap-3 overflow-x-auto pb-3">
+      <div className="relative mt-6 flex gap-3 overflow-x-auto pb-4 before:absolute before:left-8 before:right-8 before:top-6 before:h-2 before:rounded-full before:bg-slate-300">
         {stages.map(([label, to], index) => (
           <Link
             key={label}
             to={to}
-            className={`min-w-36 rounded-2xl border p-3 text-sm font-bold ${index === 0 || (current && index === 1) ? 'border-ocean bg-white text-ocean' : 'bg-white/70 text-slate-600'}`}
+            className={`relative min-w-36 rounded-2xl border p-3 pt-10 text-sm font-bold shadow-sm ${index === currentStage ? 'border-ocean bg-sun text-ink ring-4 ring-sky' : index < currentStage ? 'border-teal-500 bg-emerald-50 text-teal-900' : 'bg-white text-slate-600'}`}
           >
-            <span className="mb-2 block text-xs">{index + 1}</span>
+            <span className={`absolute left-4 top-3 grid h-7 w-7 place-items-center rounded-full text-xs ${index<=currentStage?'bg-ocean text-white':'bg-slate-200'}`}>{index + 1}</span>
             {label}
           </Link>
         ))}
@@ -62,3 +64,5 @@ export function LearningRoadmap() {
     </section>
   );
 }
+
+export function RoadmapPage(){return <div className="mx-auto max-w-5xl"><LearningRoadmap/></div>}
