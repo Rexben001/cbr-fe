@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ExamPage } from './exam-pages';
+import { ExamIntroPage, ExamPage } from './exam-pages';
 
 const exam = {
   id: 'exam-1', status: 'in_progress', totalQuestions: 2, passingScore: 1,
@@ -33,5 +33,28 @@ describe('active mock exam navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: /leave exam/i }));
     expect(confirm).toHaveBeenCalled();
     expect(screen.getByText(/location: \/exams\/exam-1/i)).toBeInTheDocument();
+  });
+});
+
+describe('exam landing availability', () => {
+  beforeEach(() => vi.restoreAllMocks());
+
+  it('keeps start available when resume and history checks fail', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: 'temporary failure' }), { status: 500 }),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/exams']}>
+          <Routes><Route path="/exams" element={<ExamIntroPage />} /></Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('button', { name: /start practice exam/i })).toBeEnabled();
+    expect(screen.queryByText(/exam information could not be loaded/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/you can still start safely/i)).toBeInTheDocument();
   });
 });

@@ -9,7 +9,7 @@ import {
   ContentAction,
 } from './api/admin';
 import { authAPI } from './api/auth';
-import { AdminLayout, AdminListControls, NewItemButton, StatusBadge } from './admin-ui';
+import { AdminLayout, AdminListControls, NewItemButton, StatusBadge, useDebouncedValue } from './admin-ui';
 import { ErrorState, Loading } from './components';
 import { AdminMediaPicker } from './media';
 import { RichTextContent, RichTextEditor } from './rich-text';
@@ -94,6 +94,7 @@ function TopicSelect({
 export function AdminQuestionsPage() {
   const pageSize = 25;
   const [search, setSearch] = useState('');
+  const committedSearch = useDebouncedValue(search);
   const [status, setStatus] = useState('');
   const [topic, setTopic] = useState('');
   const [offset, setOffset] = useState(0);
@@ -101,8 +102,9 @@ export function AdminQuestionsPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
   const questions = useQuery({
-    queryKey: ['admin-questions', search, status, topic, offset],
-    queryFn: () => adminAPI.listQuestions({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', topic, search }),
+    queryKey: ['admin-questions', committedSearch, status, topic, offset],
+    queryFn: () => adminAPI.listQuestions({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', topic, search: committedSearch }),
+    placeholderData: (previous) => previous,
     enabled: me.data?.role === 'admin',
   });
   const client = useQueryClient();
@@ -499,6 +501,7 @@ export function AdminQuestionsPage() {
 export function AdminScenariosPage() {
   const pageSize = 25;
   const [search, setSearch] = useState('');
+  const committedSearch = useDebouncedValue(search);
   const [status, setStatus] = useState('');
   const [topic, setTopic] = useState('');
   const [offset, setOffset] = useState(0);
@@ -506,8 +509,9 @@ export function AdminScenariosPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
   const scenarios = useQuery({
-    queryKey: ['admin-scenarios', search, status, topic, offset],
-    queryFn: () => adminAPI.listScenarios({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', topic, search }),
+    queryKey: ['admin-scenarios', committedSearch, status, topic, offset],
+    queryFn: () => adminAPI.listScenarios({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', topic, search: committedSearch }),
+    placeholderData: (previous) => previous,
     enabled: me.data?.role === 'admin',
   });
   const client = useQueryClient();

@@ -11,14 +11,24 @@ import {
   LogIn,
   LogOut,
   Trophy,
+  Target,
   UserPlus,
   Search,
   Highlighter,
+  Settings,
+  Signpost,
+  Menu,
+  X,
+  MoreHorizontal,
+  ChevronDown,
+  Bookmark,
+  User,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import type { PropsWithChildren } from 'react';
-import { authAPI } from './api/auth';
+import { authAPI, type Learner } from './api/auth';
 
 export function Shell({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
@@ -36,6 +46,18 @@ export function Shell({ children }: PropsWithChildren) {
   const adminPage =
     learner?.role === 'admin' && location.pathname.startsWith('/admin');
   const immersiveExam = /^\/exams\/[^/]+$/.test(location.pathname);
+  useEffect(() => {
+    if (!learner) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(`rijfiks.preferences.${learner.id}`) ?? '{}');
+      const dark = saved.theme === 'dark' || (saved.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', dark);
+      document.documentElement.dataset.readingFont = saved.fontSize ?? 'medium';
+      document.documentElement.dataset.readingSpacing = saved.lineSpacing ?? 'relaxed';
+      document.documentElement.dataset.readingWidth = saved.readingWidth ?? 'normal';
+      document.documentElement.dataset.readingMode = String(saved.readingMode ?? false);
+    } catch { /* Keep default visual settings when stored preferences are invalid. */ }
+  }, [learner]);
   if (immersiveExam) return <>{children}</>;
   // AdminLayout owns navigation in Studio. Rendering the learner header here
   // used to duplicate the same navigation above the sidebar.
@@ -47,102 +69,27 @@ export function Shell({ children }: PropsWithChildren) {
     );
   return (
     <div className="min-h-screen bg-slate-50 text-ink">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
-          <Link
-            to="/"
-            className="flex shrink-0 items-center gap-2 font-bold text-ocean"
-          >
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-ocean text-white">
-              <Trophy size={20} />
-            </span>
-            RijFiks
-          </Link>
-          <nav className="flex items-center gap-3 text-sm font-medium">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                isActive ? 'text-ocean' : 'text-slate-500'
-              }
-            >
-              <Home className="inline mr-1" size={16} />
-              Learn
-            </NavLink>
-            <NavLink
-              to="/scenarios"
-              className={({ isActive }) =>
-                `hidden md:inline ${isActive ? 'text-ocean' : 'text-slate-500'}`
-              }
-            >
-              <CarFront className="inline mr-1" size={16} />
-              Scenarios
-            </NavLink>
-            <NavLink
-              to="/exams"
-              className={({ isActive }) =>
-                `hidden md:inline ${isActive ? 'text-ocean' : 'text-slate-500'}`
-              }
-            >
-              <ClipboardCheck className="inline mr-1" size={16} />
-              Exam
-            </NavLink>
-            <NavLink to="/search" aria-label="Search lessons" className={({isActive})=>isActive?'text-ocean':'text-slate-500'}><Search size={17}/></NavLink>
-            <span className="hidden text-slate-400 lg:inline">
-              <CircleHelp className="inline mr-1" size={16} />
-              CBR B
-            </span>
-            {learner ? (
-              <>
-                <NavLink to="/highlights" aria-label="My highlights" className={({isActive})=>`hidden sm:inline ${isActive?'text-ocean':'text-slate-500'}`}><Highlighter size={17}/></NavLink>
-                {learner.role === 'admin' && (
-                  <NavLink
-                    to="/admin"
-                    className="inline-flex items-center gap-1 rounded-lg bg-ink px-3 py-2 text-white"
-                  >
-                    <LayoutDashboard size={16} />
-                    <span className="hidden sm:inline">Admin</span>
-                  </NavLink>
-                )}
-                <NavLink
-                  to="/dashboard"
-                  className="hidden text-ocean sm:inline"
-                >
-                  {learner.displayName}
-                </NavLink>
-                <button
-                  aria-label="Log out"
-                  onClick={() => logout.mutate()}
-                  disabled={logout.isPending}
-                  className="inline-flex items-center gap-1 rounded-lg border border-ocean px-2 py-2 text-ocean hover:bg-sky"
-                >
-                  <LogOut size={16} />
-                  <span className="hidden sm:inline">Log out</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-1 text-ocean"
-                >
-                  <LogIn size={16} />
-                  <span className="hidden sm:inline">Log in</span>
-                </Link>
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-1 rounded-lg bg-ocean px-3 py-2 text-white"
-                >
-                  <UserPlus size={16} />
-                  <span className="hidden sm:inline">Sign up</span>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
+      <LearnerHeader learner={learner} logout={() => logout.mutate()} loggingOut={logout.isPending} />
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
     </div>
   );
+}
+
+const primaryNav = [
+  { to: '/', label: 'Learn', icon: Home }, { to: '/practice', label: 'Practice', icon: Target },
+  { to: '/traffic-signs', label: 'Signs', icon: Signpost }, { to: '/exams', label: 'Exam', icon: ClipboardCheck },
+];
+const secondaryNav = [
+  { to: '/scenarios', label: 'Scenarios', icon: CarFront }, { to: '/dashboard', label: 'My progress', icon: LayoutDashboard },
+  { to: '/highlights', label: 'Saved items', icon: Bookmark }, { to: '/search', label: 'Search lessons', icon: Search },
+];
+
+function LearnerHeader({ learner, logout, loggingOut }: { learner?: Learner; logout: () => void; loggingOut: boolean }) {
+  const [moreOpen, setMoreOpen] = useState(false); const [userOpen, setUserOpen] = useState(false); const [mobileOpen, setMobileOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => { const close = (event: MouseEvent) => { if (!root.current?.contains(event.target as Node)) { setMoreOpen(false); setUserOpen(false); } }; const key = (event: KeyboardEvent) => { if (event.key === 'Escape') { setMoreOpen(false); setUserOpen(false); setMobileOpen(false); } }; document.addEventListener('mousedown', close); document.addEventListener('keydown', key); return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); }; }, []);
+  const close = () => { setMoreOpen(false); setUserOpen(false); setMobileOpen(false); };
+  return <header ref={root} className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="header-inner mx-auto max-w-6xl px-4"><Link to="/" onClick={close} className="flex shrink-0 items-center gap-2 font-bold text-ocean"><span className="grid h-9 w-9 place-items-center rounded-xl bg-ocean text-white"><Trophy size={20}/></span>RijFiks</Link><nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">{primaryNav.map(({to,label,icon:Icon})=><NavLink key={to} to={to} end={to==='/'} className={({isActive})=>`header-nav-link ${isActive?'header-nav-active':''}`}><Icon size={16}/>{label}</NavLink>)}<div className="relative"><button type="button" className={`header-nav-link ${moreOpen?'header-nav-active':''}`} aria-expanded={moreOpen} aria-haspopup="menu" onClick={()=>{setMoreOpen(v=>!v);setUserOpen(false)}}><MoreHorizontal size={17}/>More<ChevronDown size={14}/></button>{moreOpen&&<div role="menu" className="header-menu">{secondaryNav.map(({to,label,icon:Icon})=><NavLink role="menuitem" key={to} to={to} onClick={close} className="header-menu-item"><Icon size={16}/>{label}</NavLink>)}</div>}</div></nav><div className="hidden items-center gap-3 md:flex"><span className="text-xs font-semibold text-slate-500">CBR B</span>{learner?<div className="relative"><button type="button" className="header-user" aria-expanded={userOpen} aria-haspopup="menu" onClick={()=>{setUserOpen(v=>!v);setMoreOpen(false)}}><span className="grid h-8 w-8 place-items-center rounded-full bg-ocean text-sm font-bold text-white">{learner.displayName.slice(0,1).toUpperCase()}</span><span className="max-w-28 truncate text-sm font-semibold">{learner.displayName}</span><ChevronDown size={15}/></button>{userOpen&&<div role="menu" className="header-menu right-0"> <Link role="menuitem" to="/settings" onClick={close} className="header-menu-item"><User size={16}/>My profile</Link><Link role="menuitem" to="/settings" onClick={close} className="header-menu-item"><Settings size={16}/>Settings</Link>{learner.role==='admin'&&<Link role="menuitem" to="/admin" onClick={close} className="header-menu-item"><LayoutDashboard size={16}/>Admin</Link>}<button role="menuitem" className="header-menu-item w-full" onClick={()=>{logout();close()}} disabled={loggingOut}><LogOut size={16}/>Log out</button></div>}</div>:<><Link to="/login" className="header-nav-link"><LogIn size={16}/>Log in</Link><Link to="/register" className="rounded-lg bg-ocean px-3 py-2 text-sm font-bold text-white">Sign up</Link></>}</div><button type="button" aria-label="Open navigation" aria-expanded={mobileOpen} onClick={()=>setMobileOpen(v=>!v)} className="grid h-10 w-10 place-items-center rounded-lg text-ocean md:hidden">{mobileOpen?<X/>:<Menu/>}</button></div>{mobileOpen&&<nav aria-label="Mobile navigation" className="border-t bg-white px-4 pb-4 pt-2 md:hidden"><div className="mx-auto grid max-w-6xl gap-1">{[...primaryNav,...secondaryNav].map(({to,label,icon:Icon})=><NavLink key={to} to={to} end={to==='/'} onClick={close} className={({isActive})=>`header-mobile-link ${isActive?'header-nav-active':''}`}><Icon size={18}/>{label}</NavLink>)}{learner&&<><Link to="/settings" onClick={close} className="header-mobile-link"><User size={18}/>My profile & settings</Link>{learner.role==='admin'&&<Link to="/admin" onClick={close} className="header-mobile-link"><LayoutDashboard size={18}/>Admin</Link>}<button className="header-mobile-link" onClick={()=>{logout();close()}} disabled={loggingOut}><LogOut size={18}/>Log out</button></>}</div></nav>}</header>;
 }
 
 export function Loading() {

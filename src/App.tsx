@@ -30,6 +30,9 @@ import { PracticeProgressPage } from './practice-progress';
 import { SearchPage } from './learner-search';
 import { HighlightsPage } from './lesson-highlights';
 import { RoadmapPage } from './learning-roadmap';
+import { PracticeHubPage } from './practice-hub';
+import { SettingsPage } from './settings';
+import { TrafficSignsPage } from './traffic-signs';
 
 export default function App() {
   return (
@@ -42,6 +45,9 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/highlights" element={<HighlightsPage />} />
         <Route path="/roadmap" element={<RoadmapPage />} />
+        <Route path="/practice" element={<PracticeHubPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/traffic-signs" element={<TrafficSignsPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/topics" element={<AdminTopicsPage />} />
         <Route
@@ -100,6 +106,7 @@ export default function App() {
           element={<PracticeProgressPage mode="bookmarks" />}
         />
         <Route path="/topics/:topicId/quiz" element={<StartQuizPage />} />
+        <Route path="/topics/:topicId/checkpoint" element={<StartQuizPage checkpoint />} />
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quizzes/:quizId/results" element={<ResultsPage />} />
         <Route path="*" element={<Dashboard />} />

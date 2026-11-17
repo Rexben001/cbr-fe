@@ -38,7 +38,8 @@ export function LearnerDashboard() {
   if (completedLessons > 0) stageIndex = 1;
   if (lessonPercent === 100) stageIndex = 2;
   if (practice.data.totalAttempts > 0) stageIndex = practice.data.incorrectQuestions > 0 ? 3 : 4;
-  if ((examPerformance.data?.totalCompleted ?? 0) > 0) stageIndex = 5;
+  if ((examPerformance.data?.totalCompleted ?? 0) > 0) stageIndex = 4;
+  if ((examPerformance.data?.passed ?? 0) > 0 && lessonPercent === 100 && practice.data.totalAttempts > 0 && practice.data.overallAccuracy >= 80) stageIndex = 5;
 
   const recommendations: Array<{ title: string; detail: string; to: string }> = [];
   if (activeExam) recommendations.push({ title: 'Resume your mock exam', detail: 'Your timer and saved answers are preserved.', to: `/exams/${activeExam.id}` });

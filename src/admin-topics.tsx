@@ -3,7 +3,7 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { adminAPI, AdminTopic } from './api/admin';
 import { authAPI } from './api/auth';
-import { AdminLayout, AdminListControls, NewItemButton, StatusBadge } from './admin-ui';
+import { AdminLayout, AdminListControls, NewItemButton, StatusBadge, useDebouncedValue } from './admin-ui';
 import { ErrorState, Loading } from './components';
 import { AdminFullscreenPreview } from './admin-preview';
 
@@ -33,14 +33,16 @@ const label: Record<string, string> = {
 export function AdminTopicsPage() {
   const pageSize = 25;
   const [search, setSearch] = useState('');
+  const committedSearch = useDebouncedValue(search);
   const [status, setStatus] = useState('');
   const [offset, setOffset] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const me = useQuery({ queryKey: ['me'], queryFn: authAPI.me, retry: false });
   const q = useQuery({
-    queryKey: ['admin-topics', search, status, offset],
-    queryFn: () => adminAPI.listTopics({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', search }),
+    queryKey: ['admin-topics', committedSearch, status, offset],
+    queryFn: () => adminAPI.listTopics({ limit: pageSize, offset, status: status as import('./api/admin').ContentStatus | '', search: committedSearch }),
+    placeholderData: (previous) => previous,
     enabled: me.data?.role === 'admin',
   });
   const client = useQueryClient();

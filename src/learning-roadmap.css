@@ -1,0 +1,446 @@
+/* RijFiks roadmap v2. Isolated from global Tailwind and existing theme. */
+.rf2-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 286px;
+    align-items: stretch;
+    gap: 20px
+}
+
+.rf2-landscape {
+    position: relative;
+    min-width: 0;
+    max-height: calc(100vh - 154px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    border-radius: 24px;
+    border: 1px solid #cae6e8;
+    background: #e4f5ed
+}
+
+.rf2-journey {
+    position: relative;
+    height: var(--rf2-height);
+    isolation: isolate
+}
+
+.rf2-art,
+.rf2-map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none
+}
+
+.rf2-stages {
+    position: relative;
+    z-index: 1
+}
+
+.rf2-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 208px;
+    padding: 0 3.5%
+}
+
+.rf2-stage-right {
+    justify-content: flex-end
+}
+
+.rf2-node {
+    width: 38%;
+    max-width: 320px;
+    min-width: 0
+}
+
+.rf2-card {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 80px;
+    padding: 12px;
+    border: 1px solid #d5e6e5;
+    border-radius: 18px;
+    background: #ffffffef;
+    box-shadow: 0 5px 15px #193b5024;
+    color: #18384e;
+    text-decoration: none;
+    backdrop-filter: blur(8px)
+}
+
+a.rf2-card {
+    transition: transform .16s, box-shadow .16s
+}
+
+a.rf2-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 20px #193b5030
+}
+
+a.rf2-card:focus-visible {
+    outline: 3px solid #087e7e;
+    outline-offset: 3px
+}
+
+.rf2-icon {
+    display: grid;
+    place-items: center;
+    width: 39px;
+    height: 39px;
+    flex: 0 0 39px;
+    border-radius: 12px;
+    background: #e5f3fc;
+    font-size: 21px
+}
+
+.rf2-card-copy {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 5px
+}
+
+.rf2-card-copy strong {
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-wrap: anywhere
+}
+
+.rf2-card-copy span {
+    color: #526d7d;
+    font-size: 12px
+}
+
+.rf2-status {
+    flex: 0 0 auto;
+    color: #0d8b7e
+}
+
+.rf2-complete .rf2-card {
+    border: 2px solid #0eaa98
+}
+
+.rf2-current .rf2-card {
+    border: 2px solid #f4ba16;
+    box-shadow: 0 0 0 3px #ffdd7859, 0 5px 15px #193b5024
+}
+
+.rf2-locked .rf2-card {
+    background: #f0f5f3d9;
+    color: #617887
+}
+
+.rf2-locked .rf2-status {
+    color: #91a1ac
+}
+
+.rf2-current-lesson {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 3px 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0a6f74;
+    text-decoration: none
+}
+
+.rf2-current-lesson:hover {
+    text-decoration: underline
+}
+
+.rf2-finish {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(90%, 370px);
+    margin: 12px auto 24px;
+    padding: 15px;
+    border: 2px solid #f3bf26;
+    border-radius: 18px;
+    background: #fffef6;
+    color: #193851;
+    text-decoration: none;
+    box-shadow: 0 6px 18px #17415c2a
+}
+
+.rf2-finish>svg:first-child {
+    color: #dba20c
+}
+
+.rf2-finish>span {
+    flex: 1;
+    display: grid;
+    gap: 3px
+}
+
+.rf2-finish small {
+    color: #647985
+}
+
+.rf2-sidebar {
+    display: flex;
+    min-height: 0;
+    max-height: calc(100vh - 154px);
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+    overscroll-behavior: contain
+}
+
+.rf2-panel {
+    border: 1px solid #e0e9ed;
+    border-radius: 20px;
+    background: #fff;
+    padding: 21px;
+    box-shadow: 0 3px 10px #1d41540c
+}
+
+.rf2-panel h2 {
+    font-weight: 800;
+    font-size: 18px;
+    line-height: 1.4;
+    color: #18364e
+}
+
+.rf2-progress {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 17px
+}
+
+.rf2-ring {
+    display: grid;
+    place-items: center;
+    width: 82px;
+    height: 82px;
+    flex: 0 0 82px;
+    border-radius: 50%
+}
+
+.rf2-ring span {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 20px;
+    font-weight: 800;
+    color: #17364b
+}
+
+.rf2-progress p {
+    display: grid;
+    gap: 4px;
+    color: #17364b
+}
+
+.rf2-progress small,
+.rf2-muted {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #627889
+}
+
+.rf2-eyebrow {
+    margin-bottom: 8px !important;
+    color: #087e7c;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .04em
+}
+
+.rf2-panel .rf2-muted {
+    margin-top: 6px
+}
+
+.rf2-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 9px;
+    margin-top: 18px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #ffc929;
+    font-weight: 800;
+    color: #132d47;
+    text-decoration: none
+}
+
+.rf2-links {
+    padding: 10px 16px
+}
+
+.rf2-links a {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 0;
+    color: #1e3e53;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none
+}
+
+.rf2-links a+a {
+    border-top: 1px solid #e4edef
+}
+
+.rf2-panel .learner-search {
+    margin-top: 10px
+}
+
+.rf2-landscape:focus-visible {
+    outline: 3px solid #087e7e;
+    outline-offset: 3px
+}
+
+.rf2-landscape::-webkit-scrollbar { width: 10px }
+.rf2-landscape::-webkit-scrollbar-track { background: #d7eddf }
+.rf2-landscape::-webkit-scrollbar-thumb { border: 3px solid #d7eddf; border-radius: 10px; background: #6da891 }
+.rf2-landscape::-webkit-scrollbar-thumb:hover { background: #438a70 }
+
+.rf2-finder { display: flex; min-height: 0; flex: 1 1 260px; flex-direction: column; gap: 12px; overflow: hidden }
+.rf2-finder .learning-search { display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column }
+.rf2-finder .learning-search-controls { grid-template-columns: minmax(0, 1fr); gap: 10px }
+.rf2-finder .learning-search-input { min-width: 0 }
+.rf2-finder .learning-search-input input { box-sizing: border-box; height: 46px; min-height: 46px; padding-top: 0; padding-bottom: 0; font-size: 14px; line-height: 46px }
+.rf2-finder .learning-search-topic-filter { box-sizing: border-box; width: 100%; height: 42px; min-height: 42px; padding-top: 0; padding-bottom: 0; font-size: 13px }
+.rf2-finder .learning-search-results { flex: 1; min-height: 0; max-height: none; overflow-y: auto; padding-right: 3px }
+.rf2-finder .learning-search-results a { padding: 11px; font-size: 13px }
+.rf2-browse-link { display: inline-flex; align-items: center; gap: 7px; color: #087e7c; font-size: 13px; font-weight: 800; text-decoration: none }
+.rf2-finder .rf2-browse-link { margin-top: auto }
+.rf2-browse-link svg:last-child { margin-left: auto }
+.rf2-browse-link:hover { text-decoration: underline }
+
+@media(max-width:1050px) {
+    .rf2-layout {
+        grid-template-columns: minmax(0, 1fr)
+    }
+
+    .rf2-sidebar {
+        display: grid;
+        max-height: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+    }
+}
+
+@media(max-width:680px) {
+    .rf2-landscape {
+        max-height: none;
+        overflow: visible;
+        border-radius: 18px
+    }
+
+    .rf2-journey {
+        height: auto
+    }
+
+    .rf2-art {
+        display: none
+    }
+
+    .rf2-stages {
+        padding: 10px 14px 10px 32px
+    }
+
+    .rf2-stages:before {
+        content: '';
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        left: 24px;
+        width: 4px;
+        border-radius: 3px;
+        background: repeating-linear-gradient(to bottom, #299a88 0 13px, transparent 13px 22px)
+    }
+
+    .rf2-stage {
+        height: auto;
+        min-height: 110px;
+        padding: 10px 0
+    }
+
+    .rf2-node {
+        width: 100%;
+        max-width: none
+    }
+
+    .rf2-stage-right {
+        justify-content: flex-start
+    }
+
+    .rf2-card {
+        min-height: 77px
+    }
+
+    .rf2-sidebar {
+        grid-template-columns: 1fr
+    }
+
+    .rf2-finder {
+        flex: initial;
+        min-height: 0;
+        overflow: visible
+    }
+
+    .rf2-finish {
+        width: calc(100% - 36px)
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    a.rf2-card {
+        transition: none
+    }
+
+    a.rf2-card:hover {
+        transform: none
+    }
+}
+
+.dark .rf2-panel,
+.dark .rf2-card {
+    background: #19283b;
+    color: #e7f0f5;
+    border-color: #3d5a68
+}
+
+.dark .rf2-panel h2,
+.dark .rf2-progress p {
+    color: #e7f0f5
+}
+
+.dark .rf2-card-copy span,
+.dark .rf2-muted,
+.dark .rf2-progress small {
+    color: #b9cad4
+}
+
+.dark .rf2-locked .rf2-card {
+    background: #283545;
+    color: #a9b8c0
+}
+
+.dark .rf2-ring span {
+    background: #19283b;
+    color: #e7f0f5
+}
+
+.dark .rf2-finish {
+    background: #19283b;
+    color: #e7f0f5
+}
+
+.dark .rf2-links a {
+    color: #e7f0f5
+}

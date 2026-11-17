@@ -121,6 +121,8 @@ export const learningAPI = {
       method: 'POST',
       body: JSON.stringify({ topicId }),
     }),
+  createCheckpoint: (topicId: string) =>
+    request<QuizView>(`/api/v1/topics/${topicId}/checkpoint`, { method: 'POST' }),
   submitQuiz: (
     quizID: string,
     answers: Array<{ questionId: string; answerId: string }>,

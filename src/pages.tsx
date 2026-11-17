@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Clock3, Play, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom';
 import { learningAPI } from './api/learning';
 import { authAPI } from './api/auth';
+import { APIError } from './api/client';
 import type { QuizResult, QuizView } from './api/types';
 import { BackLink, ErrorState, Loading, PrimaryLink } from './components';
 import { LessonRenderer } from './lesson-blocks';
@@ -17,12 +18,14 @@ import { RichTextContent } from './rich-text';
 import { PracticeSession } from './practice-session';
 import { HighlightableLesson } from './lesson-highlights';
 import { LearnerHome } from './learner-home';
+import { RoadmapPage } from './learning-roadmap';
+import { TrafficSign, referencedTrafficSignCodes } from './traffic-sign';
 
 const quizKey = (id: string) => `roadready.quiz.${id}`;
 const resultKey = (id: string) => `roadready.result.${id}`;
 
 export function Dashboard() {
-  return <LearnerHome />;
+  return <RoadmapPage />;
 }
 
 export function TopicPage() {
@@ -44,6 +47,7 @@ export function TopicPage() {
     queryFn: () => learningAPI.listLessons(topicId),
   });
   const topic = topics?.find((t) => t.id === topicId);
+  const path = useQuery({ queryKey: ['learning-path'], queryFn: authAPI.learningPath, retry:false });
   if (isPending) return <Loading />;
   if (error || !lessons)
     return <ErrorState message="This topic could not be loaded." />;
@@ -82,6 +86,7 @@ export function TopicPage() {
           </li>
         ))}
       </ol>
+      {lessons.length > 0 && lessons.every(lesson => path.data?.find(item => item.id === lesson.id)?.completed) && <section className="mt-7 rounded-2xl border-2 border-sun bg-yellow-50 p-5"><p className="font-bold text-ocean">TOPIC CHECKPOINT</p><h2 className="mt-1 text-xl font-bold">Ready to unlock the next topic?</h2><p className="mt-1 text-sm text-slate-600">Score at least 80%. You can retry if needed.</p><Link to={`/topics/${topicId}/checkpoint`} className="mt-4 inline-flex rounded-xl bg-ocean px-5 py-3 font-bold text-white">Start checkpoint</Link></section>}
     </>
   );
 }
@@ -243,37 +248,38 @@ function QuestionCard({ question, selected, onSelect }: {
   selected?: string;
   onSelect: (id: string) => void;
 }) {
-  return <div className="rounded-2xl border bg-white p-5 shadow-sm"><div className="mb-4 flex items-start justify-between gap-3"><RichTextContent value={question.text} /><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold uppercase text-slate-500">{question.difficulty}</span></div><LearnerMedia type="question" contentId={question.id} /><div className="mt-4 space-y-2">{question.options.map((option) => <button key={option.id} type="button" onClick={() => onSelect(option.id)} className={`w-full rounded-xl border p-3 text-left transition ${selected === option.id ? 'border-ocean bg-sky' : 'hover:border-teal-300'}`}>{option.text}</button>)}</div></div>;
+  const signCodes = referencedTrafficSignCodes(question.text);
+  return <div className="rounded-2xl border bg-white p-5 shadow-sm"><div className="mb-4 flex items-start justify-between gap-3"><RichTextContent value={question.text} /><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold uppercase text-slate-500">{question.difficulty}</span></div>{signCodes.length > 0 && <div className="mb-4 flex flex-wrap gap-3 rounded-xl bg-sky/40 p-3" aria-label="Traffic signs referenced in this question">{signCodes.map(code => <span key={code} className="flex items-center gap-2"><TrafficSign code={code} size="card"/><strong>{code}</strong></span>)}</div>}<LearnerMedia type="question" contentId={question.id} /><div className="mt-4 space-y-2">{question.options.map((option) => <button key={option.id} type="button" onClick={() => onSelect(option.id)} className={`w-full rounded-xl border p-3 text-left transition ${selected === option.id ? 'border-ocean bg-sky' : 'hover:border-teal-300'}`}>{option.text}</button>)}</div></div>;
 }
 
-export function StartQuizPage() {
+export function StartQuizPage({checkpoint=false}:{checkpoint?:boolean}) {
   const { topicId = '' } = useParams();
   const navigate = useNavigate();
   const create = useMutation({
-    mutationFn: () => learningAPI.createQuiz(topicId),
+    mutationFn: () => checkpoint ? learningAPI.createCheckpoint(topicId) : learningAPI.createQuiz(topicId),
     onSuccess: (quiz) => {
       sessionStorage.setItem(quizKey(quiz.id), JSON.stringify(quiz));
+      if (checkpoint) sessionStorage.setItem(`${quizKey(quiz.id)}.checkpoint`, 'true');
       navigate(`/quizzes/${quiz.id}`);
     },
   });
   return (
     <div className="mx-auto max-w-xl text-center">
       <Clock3 className="mx-auto text-ocean" size={42} />
-      <h1 className="mt-4 text-3xl font-bold">Ready for a focused quiz?</h1>
+      <h1 className="mt-4 text-3xl font-bold">{checkpoint?'Ready for your topic checkpoint?':'Ready for a focused quiz?'}</h1>
       <p className="mt-3 text-slate-600">
-        You will answer five questions. Your score and rule explanations appear
-        at the end.
+        You will answer five questions. {checkpoint?'Score 80% to unlock the next topic.':'Your score and rule explanations appear at the end.'}
       </p>
       <button
         className="mt-7 rounded-xl bg-ocean px-5 py-3 font-bold text-white disabled:opacity-50"
         disabled={create.isPending}
         onClick={() => create.mutate()}
       >
-        {create.isPending ? 'Starting…' : 'Start quiz'}
+        {create.isPending ? 'Starting…' : checkpoint?'Start checkpoint':'Start quiz'}
       </button>
       {create.error && (
         <div className="mt-5">
-          <ErrorState message="The quiz could not be started. This topic needs at least five questions." />
+          <ErrorState message={checkpoint && create.error instanceof APIError && create.error.status === 403 ? 'Finish every lesson in this topic before starting its checkpoint.' : create.error instanceof APIError ? create.error.message : 'The quiz could not be started. This topic needs at least five questions.'} />
         </div>
       )}
     </div>
@@ -283,6 +289,7 @@ export function StartQuizPage() {
 export function QuizPage() {
   const { quizId = '' } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const quiz = JSON.parse(
     sessionStorage.getItem(quizKey(quizId)) ?? 'null',
   ) as QuizView | null;
@@ -298,6 +305,7 @@ export function QuizPage() {
       ),
     onSuccess: (result) => {
       sessionStorage.setItem(resultKey(quizId), JSON.stringify(result));
+      void queryClient.invalidateQueries({queryKey:['learning-path']});
       navigate(`/quizzes/${quizId}/results`);
     },
   });
@@ -358,10 +366,11 @@ export function ResultsPage() {
   ) as QuizResult | null;
   if (!result) return <ErrorState message="No results found for this quiz." />;
   const passed = result.percentageScore >= 80;
+  const checkpoint = sessionStorage.getItem(`${quizKey(quizId)}.checkpoint`) === 'true';
   return (
     <div className="mx-auto max-w-2xl">
       <section className="rounded-3xl bg-ink p-7 text-center text-white">
-        <p className="font-bold text-sun">QUIZ COMPLETE</p>
+        <p className="font-bold text-sun">{checkpoint?'TOPIC CHECKPOINT COMPLETE':'QUIZ COMPLETE'}</p>
         <h1 className="mt-2 text-5xl font-bold">{result.percentageScore}%</h1>
         <p className="mt-2">
           {result.correctAnswers} correct · {result.incorrectAnswers} incorrect
@@ -371,8 +380,8 @@ export function ResultsPage() {
         </p>
         <p className="mt-5 text-slate-200">
           {passed
-            ? 'Strong work — keep that road awareness sharp.'
-            : 'Good effort. Review the explanations, then try again.'}
+            ? checkpoint?'Checkpoint passed — the next topic is now unlocked.':'Strong work — keep that road awareness sharp.'
+            : checkpoint?'Checkpoint not passed yet. Review the explanations and retry when ready.':'Good effort. Review the explanations, then try again.'}
         </p>
       </section>
       <section className="mt-6">
@@ -397,7 +406,7 @@ export function ResultsPage() {
         </div>
       </section>
       <div className="mt-7">
-        <PrimaryLink to="/">Choose another topic</PrimaryLink>
+        <PrimaryLink to="/">{checkpoint?'Return to roadmap':'Choose another topic'}</PrimaryLink>
       </div>
     </div>
   );

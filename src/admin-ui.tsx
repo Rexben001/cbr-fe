@@ -9,6 +9,7 @@ import {
   Route,
   Settings2,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
@@ -20,6 +21,16 @@ const navigation = [
   { to: '/admin/scenarios', label: 'Scenarios', icon: Map },
   { to: '/admin/media', label: 'Media library', icon: Image },
 ];
+
+/** Keep typing responsive; callers use the returned value for remote lists. */
+export function useDebouncedValue<T>(value: T, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [delay, value]);
+  return debounced;
+}
 
 export function AdminLayout({
   title,

@@ -1,0 +1,21 @@
+import { useQueries, useQuery } from '@tanstack/react-query';
+import { Bookmark, ClipboardCheck, RotateCcw, Target } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { authAPI } from './api/auth';
+import { learningAPI } from './api/learning';
+import { ErrorState, Loading } from './components';
+
+export function PracticeHubPage() {
+  const [analytics, revision, bookmarks, topics] = useQueries({ queries: [
+    { queryKey:['practice-analytics'], queryFn:learningAPI.practiceAnalytics, retry:false }, { queryKey:['revision'], queryFn:learningAPI.revision, retry:false }, { queryKey:['bookmarks'], queryFn:learningAPI.bookmarks, retry:false }, { queryKey:['topics'], queryFn:learningAPI.listTopics },
+  ] });
+  const active = useQuery({queryKey:['active-exam'],queryFn:async()=>null as {id:string}|null,enabled:false});
+  if (analytics.isPending || revision.isPending || bookmarks.isPending || topics.isPending) return <Loading/>;
+  if (analytics.error || revision.error || bookmarks.error || topics.error || !analytics.data || !revision.data || !bookmarks.data || !topics.data) return <ErrorState message="Practice options could not be loaded."/>;
+  const names=new Map(topics.data.map(topic=>[topic.id,topic.title]));
+  const weak=[...analytics.data.topics].filter(topic=>topic.attempts>0).sort((a,b)=>a.accuracy-b.accuracy)[0];
+  const topicName=(id:string)=>names.get(id)??'This topic';
+  return <div className="mx-auto max-w-6xl space-y-6"><header><p className="font-bold text-ocean">PERSONALISED PRACTICE</p><h1 className="mt-1 text-3xl font-bold">Practice hub</h1><p className="mt-2 text-slate-600">Choose focused practice without mixing lessons, questions and mock exams.</p></header><section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><HubLink icon={<RotateCcw/>} title="Review mistakes" detail={revision.data.length?`${revision.data.length} question${revision.data.length===1?'':'s'} to revisit`:'No mistakes to review'} to="/practice/revision"/><HubLink icon={<Bookmark/>} title="Bookmarked questions" detail={bookmarks.data.length?`${bookmarks.data.length} saved question${bookmarks.data.length===1?'':'s'}`:'Save questions while practising'} to="/practice/bookmarks"/><HubLink icon={<Target/>} title={weak?`Practice ${topicName(weak.topic)}`:'Explore topic practice'} detail={weak?`${Math.round(weak.accuracy)}% accuracy from ${weak.attempts} attempts`:'Complete attempts to get a recommendation'} to={weak?`/topics/${weak.topic}/practice`:'/'} /><HubLink icon={<ClipboardCheck/>} title="Mock exams" detail="Timed CBR-style exam practice" to="/exams"/></section><section className="grid gap-4 lg:grid-cols-[1fr_.8fr]"><div className="rounded-2xl border bg-white p-5"><h2 className="text-xl font-bold">Start a short practice</h2><p className="mt-1 text-sm text-slate-600">Five questions, scored with the usual practice flow.</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{topics.data.slice(0,4).map(topic=><Link key={topic.id} to={`/topics/${topic.id}/practice`} className="rounded-xl bg-slate-50 p-3 text-sm font-semibold hover:bg-sky">{topic.title}<span className="float-right text-ocean">→</span></Link>)}</div></div><div className="rounded-2xl border bg-white p-5"><h2 className="text-xl font-bold">Recent performance</h2>{analytics.data.totalAttempts ? <><strong className="mt-4 block text-3xl">{Math.round(analytics.data.overallAccuracy)}%</strong><p className="text-sm text-slate-600">accuracy across {analytics.data.totalAttempts} attempts</p><p className="mt-4 text-sm">{analytics.data.incorrectQuestions} questions currently need review.</p></> : <p className="mt-4 text-sm text-slate-600">No practice attempts yet. Start with a topic or your first mock exam.</p>}</div></section>{active.data&&<Link to={`/exams/${active.data.id}`}>Resume exam</Link>}</div>;
+}
+function HubLink({icon,title,detail,to}:{icon:ReactNode;title:string;detail:string;to:string}) { return <Link to={to} className="rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-ocean"><span className="text-ocean">{icon}</span><strong className="mt-3 block">{title}</strong><p className="mt-1 text-sm text-slate-600">{detail}</p></Link>; }

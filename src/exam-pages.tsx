@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Flag, Grid2X2, Send } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock3, Flag, Grid2X2, History, ListChecks, Play, Send } from 'lucide-react';
 import { examsAPI } from './api/exams';
 import { APIError } from './api/client';
 import { ErrorState, Loading } from './components';
@@ -19,6 +20,7 @@ export function ExamIntroPage() {
     queryFn: examsAPI.active,
     retry: false,
   });
+  const history = useQuery({ queryKey: ['exam-history'], queryFn: examsAPI.history, retry: false });
   const start = useMutation({
     mutationFn: examsAPI.start,
     onSuccess: (exam) => navigate(`/exams/${exam.id}`),
@@ -27,31 +29,19 @@ export function ExamIntroPage() {
         void active.refetch();
     },
   });
+  // The active-attempt check is the only information needed before deciding
+  // whether to resume. History is secondary and must never block this page.
+  if (active.isPending) return <Loading />;
   if (active.data) return <Navigate to={`/exams/${active.data.id}`} replace />;
-  return (
-    <div className="mx-auto max-w-xl rounded-3xl bg-white p-7 shadow-sm">
-      <p className="font-bold text-ocean">INDEPENDENT PRACTICE EXAM</p>
-      <h1 className="mt-2 text-3xl font-bold">Category B theory practice</h1>
-      <p className="mt-4">
-        50 questions · 30 minutes · pass from 44 correct answers.
-      </p>
-      {start.error && <ErrorState message={start.error instanceof APIError ? start.error.message : 'Exam could not start.'} />}
-      <button
-        onClick={() => start.mutate()}
-        disabled={start.isPending}
-        className="mt-6 rounded-xl bg-ocean px-5 py-3 font-bold text-white disabled:opacity-60"
-      >
-        Start exam
-      </button>
-      <Link
-        to="/exams/history"
-        className="mt-4 inline-block font-bold text-ocean"
-      >
-        My exam history →
-      </Link>
-    </div>
-  );
+  // A failed or expired resume lookup must not trap the learner on an error
+  // screen. Starting remains safe: the backend clears expired attempts and
+  // rejects duplicate active attempts transactionally.
+  const resumeCheckFailed = Boolean(active.error) && !(active.error instanceof APIError && (active.error.status === 404 || active.error.status === 410));
+  const latest = history.data?.find(item => item.status === 'completed');
+  return <main className="mx-auto max-w-4xl"><header className="text-center"><p className="font-bold text-ocean">CATEGORY B PRACTICE EXAM</p><h1 className="mt-2 text-3xl font-bold sm:text-4xl">Ready to test your theory?</h1><p className="mx-auto mt-3 max-w-xl text-slate-600">A focused CBR-style practice exam with the same saved-answer and review experience you use across RijFiks.</p></header><section className="mt-7 overflow-hidden rounded-3xl border bg-white shadow-sm"><div className="grid lg:grid-cols-[1.15fr_.85fr]"><div className="p-6 sm:p-8"><h2 className="text-2xl font-bold">Practice exam</h2>{resumeCheckFailed && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900" role="status">A previous exam could not be checked. You can still start safely; an existing active exam will be reused.</p>}<div className="mt-5 grid grid-cols-3 gap-3"><ExamFact icon={<ListChecks/>} value="50" label="questions"/><ExamFact icon={<Clock3/>} value="30 min" label="timer"/><ExamFact icon={<CheckCircle2/>} value="44" label="needed to pass"/></div>{start.error && <div className="mt-5"><ErrorState message={start.error instanceof APIError ? start.error.message : 'Exam could not start.'}/></div>}<button type="button" onClick={() => start.mutate()} disabled={start.isPending} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sun px-5 py-4 font-bold text-ink transition hover:brightness-95 disabled:opacity-60"><Play size={18} fill="currentColor"/>{start.isPending ? 'Preparing exam…' : 'Start practice exam'}</button><p className="mt-3 text-center text-xs text-slate-500">Only one unfinished exam can exist at a time.</p></div><aside className="bg-sky/50 p-6 sm:p-8"><p className="font-bold text-ocean">BEFORE YOU START</p><ul className="mt-4 space-y-3 text-sm text-slate-700"><li>• The 30-minute timer starts immediately.</li><li>• Move between questions; answers save as you go.</li><li>• Flag questions you want to revisit.</li><li>• Submit when ready. Unanswered questions count as incorrect.</li></ul></aside></div></section><section className="mt-5 rounded-2xl border bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-bold text-ocean">EXAM HISTORY</p><h2 className="mt-1 text-lg font-bold">{history.isPending ? 'Loading exam history…' : history.error ? 'History is temporarily unavailable' : latest ? `${latest.passed ? 'Last attempt passed' : 'Last attempt'} · ${latest.percentage}%` : 'No completed practice exams yet'}</h2><p className="mt-1 text-sm text-slate-600">{history.isPending ? 'You can start while this loads.' : history.error ? 'You can still start a new practice exam.' : latest ? 'Review your result or start another focused attempt.' : 'Your completed exams and results will appear here.'}</p></div><Link to="/exams/history" className="inline-flex items-center gap-2 rounded-xl border border-ocean px-4 py-3 font-bold text-ocean"><History size={18}/>View history</Link></div></section></main>;
 }
+
+function ExamFact({ icon, value, label }: { icon: ReactNode; value: string; label: string }) { return <div className="rounded-xl bg-slate-50 p-3 text-center"><span className="mx-auto block w-fit text-ocean">{icon}</span><strong className="mt-1 block text-lg">{value}</strong><span className="text-xs text-slate-600">{label}</span></div>; }
 
 export function ExamHistoryPage() {
   const history = useQuery({
@@ -160,10 +150,6 @@ export function ExamPage() {
     if (data && seconds === 0 && !submit.isPending) submitExam();
   }, [data, seconds, submit.isPending, submitExam]);
   useEffect(() => {
-    if (error instanceof APIError && error.status === 410)
-      navigate(`/exams/${id}/results`, { replace: true });
-  }, [error, id, navigate]);
-  useEffect(() => {
     const warnBeforeExit = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = '';
@@ -172,6 +158,8 @@ export function ExamPage() {
     return () => window.removeEventListener('beforeunload', warnBeforeExit);
   }, []);
   if (isPending) return <Loading />;
+  if (error instanceof APIError && error.status === 410)
+    return <Navigate to="/exams" replace />;
   if (error || !data)
     return (
       <ErrorState message="This exam could not be opened. It may have expired; return to the exam page to start again." />
