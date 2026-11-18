@@ -20,6 +20,9 @@
 .traffic-sign img { display:block; max-width:100%; max-height:100%; object-fit:contain; }
 .traffic-sign-inline { width:1.7em; height:1.7em; margin:0 .15em; }.traffic-sign-card { width:4rem; height:4rem; }.traffic-sign-exam { width:16rem; height:16rem; }
 .traffic-sign-fallback { display:inline-block; border-radius:.35em; background:#e8f0f4; padding:.08em .3em; font-weight:700; color:#183b55; }
+.flashcard-deck-tab { border-radius:.6rem; padding:.65rem 1rem; font-size:.875rem; font-weight:700; color:#526277; }
+.flashcard-deck-tab:hover { color:#0f5b63; }
+.flashcard-deck-tab.active { background:#0f6670; color:white; box-shadow:0 2px 7px rgba(15,102,112,.2); }
 .header-nav-link { display:inline-flex; align-items:center; gap:6px; border-radius:9px; padding:8px 10px; color:#627489; font-size:14px; font-weight:700; text-decoration:none; }
 .header-inner { display:grid; height:72px; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; }
 .header-inner > :first-child { justify-self:start; }.header-inner > nav { justify-self:center; }.header-inner > :nth-child(3) { justify-self:end; }

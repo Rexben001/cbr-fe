@@ -32,7 +32,7 @@ import { HighlightsPage } from './lesson-highlights';
 import { RoadmapPage } from './learning-roadmap';
 import { PracticeHubPage } from './practice-hub';
 import { SettingsPage } from './settings';
-import { TrafficSignsPage } from './traffic-signs';
+import { DashboardSymbolsPage, TrafficSignsPage } from './traffic-signs';
 
 export default function App() {
   return (
@@ -48,6 +48,7 @@ export default function App() {
         <Route path="/practice" element={<PracticeHubPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/traffic-signs" element={<TrafficSignsPage />} />
+        <Route path="/dashboard-symbols" element={<DashboardSymbolsPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/topics" element={<AdminTopicsPage />} />
         <Route
