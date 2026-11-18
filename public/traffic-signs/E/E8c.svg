@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="440" viewBox="0 0 300 440" role="img" aria-label="Dutch traffic sign E8c">
+<title>RVV 1990 sign E8c, illustrated vector redrawing, review required</title>
+<rect x="1" y="1" width="298" height="438" rx="15" fill="#16418b" stroke="#18456a" stroke-width="2"/>
+<rect x="14" y="13" width="272" height="414" rx="20" fill="none" stroke="white" stroke-width="9"/>
+<!-- White P constructed as paths rather than font text for portability -->
+<path fill="white" fill-rule="evenodd" d="M77 41 H169 C223 41 240 72 240 113 C240 157 211 180 168 180 H122 V241 H77 Z M122 80 V143 H165 C186 143 195 133 195 112 C195 92 185 80 163 80 Z"/>
+<!-- Charging station and battery indication -->
+<rect x="80" y="288" width="62" height="68" rx="4" fill="none" stroke="white" stroke-width="8"/>
+<rect x="80" y="368" width="62" height="49" rx="4" fill="white"/>
+<path d="M117 375 L96 397 H110 L101 411 L125 387 H112 Z" fill="#16418b"/>
+<!-- EV charging plug and lead -->
+<path d="M171 392 H188 V379 H215 V399 H190 V389 H171 Z" fill="white"/>
+<path d="M215 388 C241 388 248 399 248 416" fill="none" stroke="white" stroke-width="7" stroke-linecap="round"/>
+<path d="M210 375 V389 M220 375 V389" stroke="white" stroke-width="5"/>
+
+</svg>

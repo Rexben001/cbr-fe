@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="440" viewBox="0 0 300 440" role="img" aria-label="Dutch traffic sign E8b">
+<title>RVV 1990 sign E8b, illustrated vector redrawing, review required</title>
+<rect x="1" y="1" width="298" height="438" rx="15" fill="#16418b" stroke="#18456a" stroke-width="2"/>
+<rect x="14" y="13" width="272" height="414" rx="20" fill="none" stroke="white" stroke-width="9"/>
+<!-- White P constructed as paths rather than font text for portability -->
+<path fill="white" fill-rule="evenodd" d="M77 41 H169 C223 41 240 72 240 113 C240 157 211 180 168 180 H122 V241 H77 Z M122 80 V143 H165 C186 143 195 133 195 112 C195 92 185 80 163 80 Z"/>
+<!-- curb line and pedestrian paving -->
+<path d="M30 404 H266" stroke="white" stroke-width="4" fill="none"/>
+<path d="M146 397 V378 H261 V404 H146 Z" fill="white"/>
+<!-- Automobile approaching the kerb, viewed from behind at an angle -->
+<g transform="rotate(-9 146 342)">
+ <path fill="white" d="M75 361 L69 350 L79 302 Q83 289 99 284 L171 284 Q186 285 191 298 L209 347 L210 370 H202 L202 388 H185 L184 374 L101 374 L100 388 H83 V374 H73 Z"/>
+ <path fill="#16418b" d="M101 298 Q104 294 115 294 H168 Q177 294 181 305 L187 327 H91 Z"/>
+ <path fill="#16418b" d="M111 348 H162 V355 H111 Z"/>
+ <path fill="#16418b" d="M80 343 H88 V355 H80 Z M197 343 H204 V355 H197 Z"/>
+</g>
+
+</svg>

@@ -1,10 +1,10 @@
 # RijFiks official Dutch RVV traffic sign asset extraction
 
-Extracted from the user's `traffic-signs.zip`; no new or altered SVGs were generated.
+The original 183 assets were extracted from the user's `traffic-signs.zip`; no extracted SVGs were altered. E8a, E8b and E8c are separate RijFiks-owned vector redrawings approved by the user for project use.
 
-**Coverage: 183 of 186 Annex 1 sign codes (July 2026 RVV 1990)**.
+**Coverage: 186 of 186 Annex 1 sign codes (July 2026 RVV 1990)**.
 
-Missing SVGs from the supplied ZIP: **E8a, E8b, E8c**. These were not fabricated or substituted. See `missing_signs.json` for verified links.
+The supplied ZIP did not contain E8a, E8b or E8c. Their manifest entries preserve their separate RijFiks-owned provenance instead of attributing them to the ZIP or Wikimedia Commons.
 
 Each sign lives in `<series>/<code>.svg`. `manifest.csv` and `manifest.json` preserve the original filename, Commons source page, supplied licence, candidate count, and SHA-256 hash.
 
@@ -30,7 +30,7 @@ Each sign lives in `<series>/<code>.svg`. `manifest.csv` and `manifest.json` pre
 - B: 7 / 7
 - C: 37 / 37
 - D: 7 / 7
-- E: 13 / 16
+- E: 16 / 16
 - F: 22 / 22
 - G: 16 / 16
 - H: 2 / 2
