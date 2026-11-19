@@ -2,7 +2,6 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { Bookmark, ClipboardCheck, RotateCcw, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { authAPI } from './api/auth';
 import { learningAPI } from './api/learning';
 import { ErrorState, Loading } from './components';
 

@@ -8,6 +8,7 @@ import {
   Plus,
   Route,
   Settings2,
+  ToggleLeft,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
@@ -20,6 +21,7 @@ const navigation = [
   { to: '/admin/questions', label: 'Questions', icon: HelpCircle },
   { to: '/admin/scenarios', label: 'Scenarios', icon: Map },
   { to: '/admin/media', label: 'Media library', icon: Image },
+  { to: '/admin/feature-flags', label: 'Feature flags', icon: ToggleLeft },
 ];
 
 /** Keep typing responsive; callers use the returned value for remote lists. */

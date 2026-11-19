@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { BookOpen, CarFront, Check, ChevronRight, Flag, Lock, Play, Trophy, MapPin } from 'lucide-react';
+import { BookOpen, Check, ChevronRight, Flag, Lock, Play, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 import { useEffect, useRef } from 'react';
@@ -158,8 +158,6 @@ export function LearningRoadmap() {
   const completed = path.data.filter(item => item.completed).length;
   const percent = path.data.length ? Math.round(completed / path.data.length * 100) : 0;
   const currentLesson = path.data.find(item => item.unlocked && !item.completed);
-  const currentTopic = milestones.find(stage => stage.lessons.some(l => l.id === currentLesson?.id));
-
   return <main className="mx-auto max-w-7xl rf2-shell">
     <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
       <div><p className="font-bold text-ocean">YOUR ROUTE TO THE CBR THEORY EXAM</p><h1 className="mt-1 text-3xl font-bold">Learning roadmap</h1></div>

@@ -5,10 +5,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from './api/auth';
 import { APIError } from './api/client';
 import { LearnerDashboard } from './learner-dashboard';
+import { useFeatureFlags } from './use-feature-flags';
 
 function AuthForm({ register }: { register: boolean }) {
   const navigate = useNavigate();
   const client = useQueryClient();
+  const flags = useFeatureFlags();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +23,19 @@ function AuthForm({ register }: { register: boolean }) {
         : authAPI.login(email, password),
     onSuccess: (user) => {
       client.setQueryData(['me'], user);
-      navigate('/dashboard');
+      if (user.role === 'admin') {
+        navigate('/admin');
+        return;
+      }
+      const destination =
+        flags.data?.learner_dashboard !== false
+          ? '/dashboard'
+          : flags.data?.learning_roadmap !== false
+            ? '/'
+            : flags.data?.practice_hub !== false
+              ? '/practice'
+              : '/settings';
+      navigate(destination);
     },
   });
   const submit = (event: FormEvent) => {

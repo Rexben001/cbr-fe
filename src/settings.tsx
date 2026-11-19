@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { authAPI } from './api/auth';
-import { ErrorState, Loading } from './components';
+import { Loading } from './components';
 
 type Preferences={theme:'light'|'dark'|'system';fontSize:'small'|'medium'|'large';lineSpacing:'normal'|'relaxed';readingWidth:'normal'|'wide';readingMode:boolean};
 const defaults:Preferences={theme:'system',fontSize:'medium',lineSpacing:'relaxed',readingWidth:'normal',readingMode:false};

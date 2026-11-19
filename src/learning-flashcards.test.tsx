@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { publishedDashboardSymbols } from './dashboard-symbols';
 import { DashboardSymbolsPage } from './learning-flashcards';
-import { buildQuizQuestions, filterFlashcards, isQuizAnswerCorrect, type LearningCard } from './learning-flashcards';
+import { buildQuizQuestions, filterFlashcards, isQuizAnswerCorrect, trafficSignAssetPath, type LearningCard } from './learning-flashcards';
 
 const cards: LearningCard[] = publishedDashboardSymbols.map(symbol => ({
   id:symbol.id, code:symbol.id, image:symbol.file, name:symbol.name, category:symbol.category,
@@ -12,6 +12,19 @@ const cards: LearningCard[] = publishedDashboardSymbols.map(symbol => ({
 }));
 
 describe('dashboard flashcard data', () => {
+  it('resolves manifest files from the Vite public traffic-sign directory', () => {
+    expect(trafficSignAssetPath('A/A1.svg')).toBe('/traffic-signs/A/A1.svg');
+    expect(trafficSignAssetPath('/B/B7.svg')).toBe('/traffic-signs/B/B7.svg');
+  });
+
+  it('publishes parking lights and the master switch as lighting symbols', () => {
+    const parkingLights = publishedDashboardSymbols.find(symbol => symbol.id === 'parking-lights');
+    const masterSwitch = publishedDashboardSymbols.find(symbol => symbol.id === 'master-lighting-switch');
+
+    expect(parkingLights).toMatchObject({ category: 'Lighting', kind: 'status' });
+    expect(masterSwitch).toMatchObject({ category: 'Lighting', kind: 'control' });
+  });
+
   it('maps unique supplied assets and filters by name, category and bookmark', () => {
     expect(new Set(cards.map(card=>card.id)).size).toBe(cards.length);
     expect(cards.every(card=>card.image.startsWith('/lighting/')||card.image.startsWith('/warnings/'))).toBe(true);

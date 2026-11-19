@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
+import { ToggleLeft } from 'lucide-react';
 import { adminAPI } from './api/admin';
 import { authAPI } from './api/auth';
 import { AdminLayout } from './admin-ui';
@@ -93,6 +94,13 @@ export function AdminDashboardPage() {
             <Link className="admin-secondary-button" to="/admin/scenarios">New scenario</Link>
           </div>
         </div>
+      </section>
+      <section className="admin-card mt-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-bold"><ToggleLeft size={19} className="text-ocean" />Feature availability</h2>
+          <p className="mt-1 text-sm text-slate-600">Control which learner modules are available without redeploying.</p>
+        </div>
+        <Link className="admin-secondary-button" to="/admin/feature-flags">Manage feature flags</Link>
       </section>
     </AdminLayout>
   );

@@ -16,6 +16,13 @@ export interface AdminDashboard {
   completedExams: number;
   examPassRate: number;
 }
+export interface FeatureFlag {
+  key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  updatedAt: string;
+}
 export type ContentStatus = 'draft' | 'in_review' | 'published' | 'archived';
 export interface AdminTopic {
   id: string;
@@ -202,6 +209,15 @@ const transition = (
   });
 
 export const adminAPI = {
+  featureFlags: () =>
+    request<{ featureFlags: FeatureFlag[] }>('/api/v1/admin/feature-flags').then(
+      (response) => response.featureFlags,
+    ),
+  updateFeatureFlag: (key: string, enabled: boolean) =>
+    request<FeatureFlag>(`/api/v1/admin/feature-flags/${key}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    }),
   lessonQuiz: (id: string) =>
     request<AdminLessonQuiz>(`/api/v1/admin/lesson-quizzes/${id}`),
   saveLessonQuiz: (value: AdminLessonQuiz) =>

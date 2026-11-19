@@ -43,6 +43,11 @@ export function isQuizAnswerCorrect(question: QuizQuestion, answerID: string) {
   return question.card.id === answerID;
 }
 
+export function trafficSignAssetPath(file: string) {
+  const relative = file.replace(/^\/+/, '');
+  return `/traffic-signs/${relative}`;
+}
+
 export function LearningFlashcardsPage({ initialDeck = 'traffic_signs' }: { initialDeck?: 'traffic_signs' | 'dashboard_symbols' }) {
   const [deck, setDeck] = useState<'traffic_signs' | 'dashboard_symbols'>(initialDeck);
   const signs = useQuery({
@@ -57,7 +62,7 @@ export function LearningFlashcardsPage({ initialDeck = 'traffic_signs' }: { init
     enabled: deck === 'traffic_signs',
   });
   const signCards = useMemo(() => (signs.data ?? []).map(sign => ({
-    id: sign.code.toLocaleLowerCase(), code: sign.code, image: `/${sign.file}`, name: `Traffic sign ${sign.code}`,
+    id: sign.code.toLocaleLowerCase(), code: sign.code, image: trafficSignAssetPath(sign.file), name: `Traffic sign ${sign.code}`,
     category: signCategories[sign.series] ?? sign.series, meaning: `${signCategories[sign.series] ?? sign.series} sign`,
     action: 'A verified plain-language explanation is not included for this asset yet. Study the visual and code without inventing a meaning.', quizEligible: false,
   } satisfies LearningCard)), [signs.data]);

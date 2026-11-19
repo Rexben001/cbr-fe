@@ -17,7 +17,6 @@ import { LearnerMedia } from './media';
 import { RichTextContent } from './rich-text';
 import { PracticeSession } from './practice-session';
 import { HighlightableLesson } from './lesson-highlights';
-import { LearnerHome } from './learner-home';
 import { RoadmapPage } from './learning-roadmap';
 import { TrafficSign, referencedTrafficSignCodes } from './traffic-sign';
 
@@ -411,5 +410,3 @@ export function ResultsPage() {
     </div>
   );
 }
-
-// TODO: Use this api to get info about cbr location and driving instructors: https://www.rijscholenvergelijken.nl/api/ai/search?city=rotterdam&license=B&limit=5
