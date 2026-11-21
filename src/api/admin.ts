@@ -15,6 +15,7 @@ export interface AdminDashboard {
   completedQuizzes: number;
   completedExams: number;
   examPassRate: number;
+  recentContent: Array<{type:string;id:string;title:string;status:string;updatedAt:string}>;
 }
 export interface FeatureFlag {
   key: string;
@@ -23,6 +24,7 @@ export interface FeatureFlag {
   enabled: boolean;
   updatedAt: string;
 }
+export interface QuestionReport { id:string; questionId:string; questionText:string; userId:string; category:string; description?:string; status:'open'|'in_review'|'resolved'|'dismissed'; createdAt:string; updatedAt:string }
 export type ContentStatus = 'draft' | 'in_review' | 'published' | 'archived';
 export interface AdminTopic {
   id: string;
@@ -235,6 +237,9 @@ export const adminAPI = {
       body: JSON.stringify({ version }),
     }),
   dashboard: () => request<AdminDashboard>('/api/v1/admin/dashboard'),
+  analytics: () => request<{mostMissedQuestions:Array<{questionId:string;misses:number}>;lowestScoringTopics:Array<{topicId:string;averageScore:number}>}>('/api/v1/admin/analytics'),
+  questionReports: (limit=25,offset=0) => request<{reports:QuestionReport[]}>(`/api/v1/admin/question-reports?limit=${limit}&offset=${offset}`).then(value=>value.reports),
+  updateQuestionReport: (id:string,status:QuestionReport['status']) => request<QuestionReport>(`/api/v1/admin/question-reports/${id}`,{method:'PATCH',body:JSON.stringify({status})}),
   media: (
     options: { search?: string; kind?: string; status?: string } = {},
   ) => {

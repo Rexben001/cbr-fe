@@ -9,6 +9,7 @@ import {
   Route,
   Settings2,
   ToggleLeft,
+  MessageSquareWarning,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
@@ -21,6 +22,7 @@ const navigation = [
   { to: '/admin/questions', label: 'Questions', icon: HelpCircle },
   { to: '/admin/scenarios', label: 'Scenarios', icon: Map },
   { to: '/admin/media', label: 'Media library', icon: Image },
+  { to: '/admin/reports', label: 'Question reports', icon: MessageSquareWarning },
   { to: '/admin/feature-flags', label: 'Feature flags', icon: ToggleLeft },
 ];
 

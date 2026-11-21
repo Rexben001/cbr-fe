@@ -55,6 +55,10 @@ export const authAPI = {
       body: JSON.stringify({ email, displayName, password, preferredLanguage }),
     }),
   logout: () => request<void>('/api/v1/auth/logout', { method: 'POST' }),
+  updateProfile: (displayName: string, preferredLanguage: 'nl' | 'en') => request<Learner>('/api/v1/auth/me', { method: 'PUT', body: JSON.stringify({ displayName, preferredLanguage }) }),
+  changePassword: (currentPassword: string, newPassword: string) => request<void>('/api/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
+  requestPasswordReset: (email: string) => request<{message:string;resetToken?:string}>('/api/v1/auth/password-reset/request', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, password: string) => request<void>('/api/v1/auth/password-reset/confirm', { method: 'POST', body: JSON.stringify({ token, password }) }),
   startLesson: (id: string) =>
     request<void>(`/api/v1/lessons/${id}/start`, { method: 'POST' }),
   saveLessonPosition: (id: string, position: string) =>

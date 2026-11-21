@@ -6,22 +6,41 @@ import { APIError } from './api/client';
 import { ErrorState, Loading } from './components';
 
 export function DrivingSchoolsPage() {
+  const [name, setName] = useState('');
   const [city, setCity] = useState('');
+  const [submittedName, setSubmittedName] = useState('');
   const [submittedCity, setSubmittedCity] = useState('');
+  const [validation, setValidation] = useState('');
   const search = useInfiniteQuery({
-    queryKey: ['driving-schools', submittedCity],
+    queryKey: ['driving-schools', submittedName, submittedCity],
     queryFn: ({ pageParam }) =>
-      drivingSchoolsAPI.search(submittedCity, pageParam, 20),
+      drivingSchoolsAPI.search({
+        query: submittedName,
+        city: submittedCity,
+        page: pageParam,
+        limit: 20,
+      }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
-    enabled: submittedCity.length >= 2,
+    enabled: submittedName.length >= 2 || submittedCity.length >= 2,
     retry: false,
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const value = city.trim();
-    if (value.length >= 2) setSubmittedCity(value);
+    const nextName = name.trim();
+    const nextCity = city.trim();
+    if (
+      (nextName && nextName.length < 2) ||
+      (nextCity && nextCity.length < 2) ||
+      (!nextName && !nextCity)
+    ) {
+      setValidation('Enter at least two characters for a school name or city.');
+      return;
+    }
+    setValidation('');
+    setSubmittedName(nextName);
+    setSubmittedCity(nextCity);
   };
   const pages = search.data?.pages ?? [];
   const summary = pages[0];
@@ -43,13 +62,27 @@ export function DrivingSchoolsPage() {
           Compare driving schools near you
         </h1>
         <p className="mt-3 max-w-2xl text-slate-300">
-          Search by city for Category B schools, learner ratings, review counts
-          and available first-attempt pass-rate data.
+          Search by school name, city or both. Results stay limited to Category
+          B passenger-car training.
         </p>
         <form
-          className="mt-6 flex max-w-2xl flex-col gap-3 sm:flex-row"
+          className="mt-6 grid max-w-4xl gap-3 lg:grid-cols-[1fr_1fr_auto]"
           onSubmit={submit}
         >
+          <label className="relative text-ink">
+            <span className="sr-only">Driving school name</span>
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={20}
+            />
+            <input
+              className="h-12 w-full rounded-xl bg-white pl-12 pr-4 outline-none focus:ring-2 focus:ring-sun"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={100}
+              placeholder="Driving school name"
+            />
+          </label>
           <label className="relative flex-1 text-ink">
             <span className="sr-only">City</span>
             <MapPin
@@ -62,17 +95,21 @@ export function DrivingSchoolsPage() {
               onChange={(event) => setCity(event.target.value)}
               minLength={2}
               maxLength={100}
-              placeholder="Enter a city, for example Rotterdam"
-              required
+              placeholder="City, for example Rotterdam"
             />
           </label>
           <button className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-sun px-6 font-bold text-ink hover:bg-yellow-300">
             <Search size={18} /> Search
           </button>
+          {validation && (
+            <p className="text-sm text-red-200 lg:col-span-3" role="alert">
+              {validation}
+            </p>
+          )}
         </form>
       </section>
 
-      {search.isPending && submittedCity && <Loading />}
+      {search.isPending && (submittedName || submittedCity) && <Loading />}
       {search.isError && (
         <div className="mt-6">
           <ErrorState
@@ -89,7 +126,13 @@ export function DrivingSchoolsPage() {
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <p className="text-sm font-bold text-ocean">CATEGORY B</p>
-              <h2 className="text-2xl font-bold">Schools in {submittedCity}</h2>
+              <h2 className="text-2xl font-bold">
+                {submittedName && submittedCity
+                  ? `${submittedName} in ${submittedCity}`
+                  : submittedName
+                    ? `Results for ${submittedName}`
+                    : `Schools in ${submittedCity}`}
+              </h2>
             </div>
             <p className="text-sm text-slate-500">
               Showing {schools.length} of {summary.total} matches

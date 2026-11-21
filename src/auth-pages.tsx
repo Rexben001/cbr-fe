@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trophy } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { type FormEvent, type ReactNode, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authAPI } from './api/auth';
 import { APIError } from './api/client';
 import { LearnerDashboard } from './learner-dashboard';
@@ -159,6 +159,7 @@ function AuthForm({ register }: { register: boolean }) {
             {register ? 'Log in' : 'Create an account'}
           </Link>
         </p>
+        {!register&&<Link className="mt-3 block text-sm font-bold text-ocean hover:underline" to="/forgot-password">Forgot password?</Link>}
       </div>
     </div>
   );
@@ -169,6 +170,9 @@ export function LoginPage() {
 export function RegisterPage() {
   return <AuthForm register />;
 }
+export function ForgotPasswordPage(){const[email,setEmail]=useState('');const mutation=useMutation({mutationFn:()=>authAPI.requestPasswordReset(email)});return <AccountCard title="Reset password"><form className="space-y-4" onSubmit={e=>{e.preventDefault();mutation.mutate()}}><p className="text-slate-600">Enter account email. Reset instructions expire after one hour.</p><label className="admin-label">Email<input className="admin-field" type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><button className="admin-primary-button" disabled={mutation.isPending}>Request reset</button>{mutation.data&&<div role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{mutation.data.message}{mutation.data.resetToken&&<Link className="mt-2 block font-bold underline" to={`/reset-password?token=${encodeURIComponent(mutation.data.resetToken)}`}>Continue with development reset token</Link>}</div>}</form></AccountCard>}
+export function ResetPasswordPage(){const[params]=useSearchParams();const[token,setToken]=useState(params.get('token')??'');const[password,setPassword]=useState('');const[confirm,setConfirm]=useState('');const mutation=useMutation({mutationFn:()=>authAPI.resetPassword(token,password)});return <AccountCard title="Choose new password">{mutation.isSuccess?<p role="status" className="rounded-xl bg-emerald-50 p-4">Password changed. <Link className="font-bold underline" to="/login">Log in</Link>.</p>:<form className="space-y-4" onSubmit={e=>{e.preventDefault();if(password===confirm)mutation.mutate()}}><label className="admin-label">Reset token<input className="admin-field" required value={token} onChange={e=>setToken(e.target.value)}/></label><label className="admin-label">New password<input className="admin-field" type="password" minLength={12} required value={password} onChange={e=>setPassword(e.target.value)}/></label><label className="admin-label">Confirm password<input className="admin-field" type="password" minLength={12} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>{confirm&&password!==confirm&&<p role="alert" className="text-red-700">Passwords do not match.</p>}{mutation.error&&<p role="alert" className="text-red-700">Reset token is invalid or expired.</p>}<button className="admin-primary-button" disabled={password!==confirm||mutation.isPending}>Reset password</button></form>}</AccountCard>}
+function AccountCard({title,children}:{title:string;children:ReactNode}){return <div className="mx-auto max-w-lg rounded-3xl bg-white p-7 shadow-lg sm:p-10"><p className="font-bold text-ocean">ACCOUNT SECURITY</p><h1 className="mb-6 mt-2 text-3xl font-bold">{title}</h1>{children}</div>}
 
 export function DashboardPage() {
   return <LearnerDashboard />;

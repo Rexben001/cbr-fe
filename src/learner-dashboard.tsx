@@ -31,7 +31,7 @@ export function LearnerDashboard() {
   const friendlyTopic = (id: string) => topicNames.get(id) ?? (/^m0?(\d+)$/i.test(id) ? `Topic ${Number(id.slice(1))}` : id);
   const recent = (exams.data ?? []).slice(0, 3);
   const activeExam = (exams.data ?? []).find((exam) => exam.status === 'in_progress');
-  const weakTopic = practice.data.topics.filter((topic) => topic.attempts > 0).sort((a, b) => a.accuracy - b.accuracy)[0];
+  const weakTopic = (practice.data.topics ?? []).filter((topic) => topic.attempts > 0).sort((a, b) => a.accuracy - b.accuracy)[0];
 
   const stages = ['Novice', 'Learn theory', 'Practise', 'Review weak areas', 'Mock exams', 'Exam ready'];
   let stageIndex = 0;

@@ -18,9 +18,11 @@ export function AdminDashboardPage() {
     enabled: user.data?.role === 'admin',
     retry: false,
   });
-  if (user.isPending || data.isPending) return <Loading />;
+  const analytics=useQuery({queryKey:['admin-analytics'],queryFn:adminAPI.analytics,enabled:user.data?.role==='admin',retry:false});
+  if (user.isPending) return <Loading />;
   if (!user.data || user.data.role !== 'admin')
     return <Navigate to="/dashboard" replace />;
+  if (data.isPending) return <Loading />;
   if (!data.data)
     return <ErrorState message="Admin metrics could not be loaded." />;
   const d = data.data;
@@ -95,6 +97,7 @@ export function AdminDashboardPage() {
           </div>
         </div>
       </section>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2"><section className="admin-card"><h2 className="text-lg font-bold">Recently modified</h2><div className="mt-4 divide-y">{(d.recentContent??[]).map(item=><div key={`${item.type}-${item.id}`} className="flex items-center justify-between gap-3 py-3"><div><strong className="block line-clamp-1">{item.title}</strong><span className="text-xs capitalize text-slate-500">{item.type} · {new Date(item.updatedAt).toLocaleString()}</span></div><span className="status-badge">{item.status.replace('_',' ')}</span></div>)}{!d.recentContent?.length&&<p className="text-sm text-slate-500">No recently modified content.</p>}</div></section><section className="admin-card"><h2 className="text-lg font-bold">Content signals</h2>{analytics.isPending?<p className="mt-4 text-sm text-slate-500">Loading analytics…</p>:<div className="mt-4 space-y-4"><div><h3 className="text-sm font-bold">Most missed questions</h3>{analytics.data?.mostMissedQuestions.slice(0,3).map(item=><p key={item.questionId} className="mt-2 flex justify-between text-sm"><span>{item.questionId}</span><strong>{item.misses} misses</strong></p>)}{!analytics.data?.mostMissedQuestions.length&&<p className="mt-2 text-sm text-slate-500">Not enough completed exam data.</p>}</div><div><h3 className="text-sm font-bold">Lowest-scoring topics</h3>{analytics.data?.lowestScoringTopics.slice(0,3).map(item=><p key={item.topicId} className="mt-2 flex justify-between text-sm"><span>{item.topicId}</span><strong>{item.averageScore}%</strong></p>)}</div></div>}</section></div>
       <section className="admin-card mt-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold"><ToggleLeft size={19} className="text-ocean" />Feature availability</h2>

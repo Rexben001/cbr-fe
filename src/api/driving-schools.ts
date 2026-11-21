@@ -27,8 +27,25 @@ export interface DrivingSchoolSearchResult {
 }
 
 export const drivingSchoolsAPI = {
-  search: (city: string, page = 1, limit = 20) =>
-    request<DrivingSchoolSearchResult>(
-      `/api/v1/driving-schools?${new URLSearchParams({ city, limit: String(limit), page: String(page) })}`,
-    ),
+  search: ({
+    query,
+    city,
+    page = 1,
+    limit = 20,
+  }: {
+    query?: string;
+    city?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const parameters = new URLSearchParams({
+      limit: String(limit),
+      page: String(page),
+    });
+    if (query?.trim()) parameters.set('q', query.trim());
+    if (city?.trim()) parameters.set('city', city.trim());
+    return request<DrivingSchoolSearchResult>(
+      `/api/v1/driving-schools?${parameters}`,
+    );
+  },
 };

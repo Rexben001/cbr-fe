@@ -58,7 +58,10 @@ it('searches only on submit and loads subsequent 20-result pages manually', asyn
     </QueryClientProvider>,
   );
 
-  fireEvent.change(screen.getByPlaceholderText(/enter a city/i), {
+  fireEvent.change(screen.getByPlaceholderText(/driving school name/i), {
+    target: { value: 'HERS' },
+  });
+  fireEvent.change(screen.getByPlaceholderText(/city, for example/i), {
     target: { value: 'Rotterdam' },
   });
   expect(fetchMock).not.toHaveBeenCalled();
@@ -68,6 +71,7 @@ it('searches only on submit and loads subsequent 20-result pages manually', asyn
   expect(screen.getByText('52.9%')).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(String(fetchMock.mock.calls[0][0])).toContain('city=Rotterdam');
+  expect(String(fetchMock.mock.calls[0][0])).toContain('q=HERS');
   expect(String(fetchMock.mock.calls[0][0])).toContain('limit=20');
   expect(String(fetchMock.mock.calls[0][0])).toContain('page=1');
 

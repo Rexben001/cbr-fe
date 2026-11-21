@@ -10,7 +10,7 @@ import {
   TopicPage,
 } from './pages';
 import { ScenarioListPage, ScenarioPage } from './scenarios';
-import { DashboardPage, LoginPage, RegisterPage } from './auth-pages';
+import { DashboardPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './auth-pages';
 import {
   ExamHistoryPage,
   ExamIntroPage,
@@ -36,6 +36,7 @@ import { DashboardSymbolsPage, TrafficSignsPage } from './traffic-signs';
 import { FeatureRoute } from './feature-flags';
 import { DrivingSchoolsPage } from './driving-schools';
 import { AdminFeatureFlagsPage } from './admin-feature-flags';
+import { AdminQuestionReportsPage } from './admin-question-reports';
 
 export default function App() {
   return (
@@ -44,6 +45,8 @@ export default function App() {
         <Route path="/" element={<FeatureRoute feature="learning_roadmap"><Dashboard /></FeatureRoute>} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/dashboard" element={<FeatureRoute feature="learner_dashboard"><DashboardPage /></FeatureRoute>} />
         <Route path="/search" element={<FeatureRoute feature="global_search"><SearchPage /></FeatureRoute>} />
         <Route path="/highlights" element={<FeatureRoute feature="saved_items"><HighlightsPage /></FeatureRoute>} />
@@ -94,6 +97,7 @@ export default function App() {
         />
         <Route path="/admin/media" element={<AdminMediaPage />} />
         <Route path="/admin/feature-flags" element={<AdminFeatureFlagsPage />} />
+        <Route path="/admin/reports" element={<AdminQuestionReportsPage />} />
         <Route path="/exams" element={<FeatureRoute feature="mock_exams"><ExamIntroPage /></FeatureRoute>} />
         <Route path="/exams/:id" element={<FeatureRoute feature="mock_exams"><ExamPage /></FeatureRoute>} />
         <Route path="/exams/:id/results" element={<FeatureRoute feature="mock_exams"><ExamResultsPage /></FeatureRoute>} />
