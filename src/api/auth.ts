@@ -5,6 +5,7 @@ export interface Learner {
   displayName: string;
   preferredLanguage: string;
   role: 'learner' | 'admin';
+  emailVerified: boolean;
 }
 export interface Progress {
   totalXp: number;
@@ -59,6 +60,8 @@ export const authAPI = {
   changePassword: (currentPassword: string, newPassword: string) => request<void>('/api/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
   requestPasswordReset: (email: string) => request<{message:string;resetToken?:string}>('/api/v1/auth/password-reset/request', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (token: string, password: string) => request<void>('/api/v1/auth/password-reset/confirm', { method: 'POST', body: JSON.stringify({ token, password }) }),
+  requestEmailVerification: () => request<{message:string;verificationToken?:string}>('/api/v1/auth/email-verification/request', { method: 'POST' }),
+  verifyEmail: (token:string) => request<void>('/api/v1/auth/email-verification/confirm', { method:'POST', body:JSON.stringify({token}) }),
   startLesson: (id: string) =>
     request<void>(`/api/v1/lessons/${id}/start`, { method: 'POST' }),
   saveLessonPosition: (id: string, position: string) =>

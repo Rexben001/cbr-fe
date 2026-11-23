@@ -10,7 +10,7 @@ import {
   TopicPage,
 } from './pages';
 import { ScenarioListPage, ScenarioPage } from './scenarios';
-import { DashboardPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './auth-pages';
+import { DashboardPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyEmailPage } from './auth-pages';
 import {
   ExamHistoryPage,
   ExamIntroPage,
@@ -47,6 +47,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/dashboard" element={<FeatureRoute feature="learner_dashboard"><DashboardPage /></FeatureRoute>} />
         <Route path="/search" element={<FeatureRoute feature="global_search"><SearchPage /></FeatureRoute>} />
         <Route path="/highlights" element={<FeatureRoute feature="saved_items"><HighlightsPage /></FeatureRoute>} />

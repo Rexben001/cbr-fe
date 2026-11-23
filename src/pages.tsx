@@ -19,6 +19,7 @@ import { PracticeSession } from './practice-session';
 import { HighlightableLesson } from './lesson-highlights';
 import { RoadmapPage } from './learning-roadmap';
 import { TrafficSign, referencedTrafficSignCodes } from './traffic-sign';
+import { useNotifications } from './notifications';
 
 const quizKey = (id: string) => `roadready.quiz.${id}`;
 const resultKey = (id: string) => `roadready.result.${id}`;
@@ -92,6 +93,9 @@ export function TopicPage() {
 
 export function LessonPage() {
   const { lessonId = '' } = useParams();
+  const notifications = useNotifications();
+  const queryClient = useQueryClient();
+  const [practicePassed, setPracticePassed] = useState(false);
   const [lessonSearchParams] = useSearchParams();
   useEffect(() => {
     if (lessonId) void authAPI.startLesson(lessonId).catch(() => undefined);
@@ -140,6 +144,12 @@ export function LessonPage() {
   });
   const complete = useMutation({
     mutationFn: () => authAPI.completeLesson(lessonId),
+    onSuccess: () => {
+      notifications.success('Lesson completed. You earned 10 XP.', `lesson-complete:${lessonId}`);
+      void queryClient.invalidateQueries({ queryKey: ['progress'] });
+      void queryClient.invalidateQueries({ queryKey: ['learning-path'] });
+    },
+    onError: (completionError) => notifications.error(completionError instanceof Error ? completionError.message : 'Lesson could not be completed.', `lesson-complete-error:${lessonId}`),
   });
   if (isPending) return <Loading />;
   if (error || !lesson)
@@ -167,22 +177,17 @@ export function LessonPage() {
         <section className="mt-10 border-t pt-7" aria-labelledby="lesson-practice-heading">
           <p className="font-bold text-ocean">PUT IT INTO PRACTICE</p>
           <h2 id="lesson-practice-heading" className="mt-1 text-2xl font-bold">Lesson practice questions</h2>
-          {lessonQuestions.isPending ? <p className="mt-3 text-sm text-slate-500">Loading practice questions…</p> : lessonQuestions.error ? <ErrorState message="Lesson practice could not be loaded." /> : <PracticeSession questions={lessonQuestions.data ?? []} storageKey={`lesson-practice:${lesson.id}`} heading={lesson.title} context={[topics.data?.find((item) => item.id === lesson.topicId)?.title ?? 'Topic', lesson.title, 'Practice']} inline />}
+          {lessonQuestions.isPending ? <p className="mt-3 text-sm text-slate-500">Loading practice questions…</p> : lessonQuestions.error ? <ErrorState message="Lesson practice could not be loaded." /> : <PracticeSession questions={lessonQuestions.data ?? []} storageKey={`lesson-practice:${lesson.id}`} heading={lesson.title} context={[topics.data?.find((item) => item.id === lesson.topicId)?.title ?? 'Topic', lesson.title, 'Practice']} lessonId={lesson.id} passingPercentage={50} onFinished={(result) => { setPracticePassed(result.passed); if (result.passed) complete.mutate(); }} inline />}
         </section>
         <div className="mt-8 flex flex-wrap gap-3 border-t pt-6">
           <button
             onClick={() => complete.mutate()}
-            disabled={complete.isPending || Boolean(complete.data)}
+            disabled={complete.isPending || Boolean(complete.data) || Boolean(lessonQuestions.data?.length && !practicePassed)}
             className="rounded-xl border border-ocean px-4 py-3 font-bold text-ocean"
           >
-            {complete.data ? 'Lesson completed +10 XP' : 'Mark lesson complete'}
+            {complete.data ? 'Lesson completed +10 XP' : lessonQuestions.data?.length && !practicePassed ? 'Pass practice to complete' : 'Mark lesson complete'}
           </button>
         </div>
-        {complete.error && (
-          <p className="mt-3 text-sm text-slate-600">
-            Sign in to save this lesson to your progress.
-          </p>
-        )}
         {(previousLesson || nextLesson) && (
           <nav
             aria-label="Lesson navigation"

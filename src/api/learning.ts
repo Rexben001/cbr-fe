@@ -107,13 +107,13 @@ export const learningAPI = {
     request<{ questions: QuestionView[] }>(
       `/api/v1/lessons/${lessonID}/practice-questions?limit=20`,
     ).then(({ questions }) => questions),
-  answer: (questionId: string, answerId: string | string[]) =>
+  answer: (questionId: string, answerId: string | string[], lessonId?: string) =>
     request<AnswerResult>('/api/v1/answers', {
       method: 'POST',
       body: JSON.stringify(
         Array.isArray(answerId)
-          ? { questionId, answerIds: answerId }
-          : { questionId, answerId },
+          ? { questionId, answerIds: answerId, ...(lessonId ? { lessonId } : {}) }
+          : { questionId, answerId, ...(lessonId ? { lessonId } : {}) },
       ),
     }),
   createQuiz: (topicId: string) =>
