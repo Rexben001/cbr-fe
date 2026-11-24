@@ -13,7 +13,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={client}>
       <BrowserRouter>
-        <NotificationProvider><App /></NotificationProvider>
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

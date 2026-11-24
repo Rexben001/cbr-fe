@@ -94,11 +94,39 @@ export const learningAPI = {
     ),
   getLesson: (lessonID: string) =>
     request<Lesson>(`/api/v1/lessons/${lessonID}`),
-  search: (query: string, topic = '') => request<{ results: import('./types').LearningSearchResult[] }>(`/api/v1/search?q=${encodeURIComponent(query)}&topic=${encodeURIComponent(topic)}`).then((value) => value.results),
-  highlights: (lessonID = '') => request<{highlights: import('./types').LessonHighlight[]}>(lessonID ? `/api/v1/lessons/${lessonID}/highlights` : '/api/v1/users/me/highlights').then((value) => value.highlights),
-  createHighlight: (lessonID: string, value: Omit<import('./types').LessonHighlight,'id'|'lessonId'|'lessonTitle'|'lessonVersion'|'currentLessonVersion'|'updatedAt'>) => request<import('./types').LessonHighlight>(`/api/v1/lessons/${lessonID}/highlights`,{method:'POST',body:JSON.stringify(value)}),
-  updateHighlight: (id:string,color:string) => request<import('./types').LessonHighlight>(`/api/v1/highlights/${id}`,{method:'PUT',body:JSON.stringify({color})}),
-  deleteHighlight: (id:string) => request<void>(`/api/v1/highlights/${id}`,{method:'DELETE'}),
+  search: (query: string, topic = '') =>
+    request<{ results: import('./types').LearningSearchResult[] }>(
+      `/api/v1/search?q=${encodeURIComponent(query)}&topic=${encodeURIComponent(topic)}`,
+    ).then((value) => value.results),
+  highlights: (lessonID = '') =>
+    request<{ highlights: import('./types').LessonHighlight[] }>(
+      lessonID
+        ? `/api/v1/lessons/${lessonID}/highlights`
+        : '/api/v1/users/me/highlights',
+    ).then((value) => value.highlights),
+  createHighlight: (
+    lessonID: string,
+    value: Omit<
+      import('./types').LessonHighlight,
+      | 'id'
+      | 'lessonId'
+      | 'lessonTitle'
+      | 'lessonVersion'
+      | 'currentLessonVersion'
+      | 'updatedAt'
+    >,
+  ) =>
+    request<import('./types').LessonHighlight>(
+      `/api/v1/lessons/${lessonID}/highlights`,
+      { method: 'POST', body: JSON.stringify(value) },
+    ),
+  updateHighlight: (id: string, color: string) =>
+    request<import('./types').LessonHighlight>(`/api/v1/highlights/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ color }),
+    }),
+  deleteHighlight: (id: string) =>
+    request<void>(`/api/v1/highlights/${id}`, { method: 'DELETE' }),
   getQuestions: (topicID: string) =>
     request<{ questions: QuestionView[] }>(
       `/api/v1/topics/${topicID}/questions?limit=5`,
@@ -107,12 +135,20 @@ export const learningAPI = {
     request<{ questions: QuestionView[] }>(
       `/api/v1/lessons/${lessonID}/practice-questions?limit=20`,
     ).then(({ questions }) => questions),
-  answer: (questionId: string, answerId: string | string[], lessonId?: string) =>
+  answer: (
+    questionId: string,
+    answerId: string | string[],
+    lessonId?: string,
+  ) =>
     request<AnswerResult>('/api/v1/answers', {
       method: 'POST',
       body: JSON.stringify(
         Array.isArray(answerId)
-          ? { questionId, answerIds: answerId, ...(lessonId ? { lessonId } : {}) }
+          ? {
+              questionId,
+              answerIds: answerId,
+              ...(lessonId ? { lessonId } : {}),
+            }
           : { questionId, answerId, ...(lessonId ? { lessonId } : {}) },
       ),
     }),
@@ -122,7 +158,9 @@ export const learningAPI = {
       body: JSON.stringify({ topicId }),
     }),
   createCheckpoint: (topicId: string) =>
-    request<QuizView>(`/api/v1/topics/${topicId}/checkpoint`, { method: 'POST' }),
+    request<QuizView>(`/api/v1/topics/${topicId}/checkpoint`, {
+      method: 'POST',
+    }),
   submitQuiz: (
     quizID: string,
     answers: Array<{ questionId: string; answerId: string }>,

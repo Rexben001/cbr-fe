@@ -1,30 +1,431 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Highlighter, Trash2 } from 'lucide-react';
-import { type ClipboardEvent, type PropsWithChildren, type ReactNode, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type ClipboardEvent,
+  type PropsWithChildren,
+  type ReactNode,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
 import { learningAPI } from './api/learning';
 import type { LessonHighlight } from './api/types';
 import { ErrorState, Loading } from './components';
 import { useNotifications } from './notifications';
 
-const colors={yellow:'bg-yellow-200',green:'bg-emerald-200',blue:'bg-sky-200'} as const;
-function textNodes(root:Node){const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes:Text[]=[];let node:Node|null;while((node=walker.nextNode()))nodes.push(node as Text);return nodes}
-function rangeAt(root:HTMLElement,start:number,end:number){const range=document.createRange();let offset=0,started=false;for(const node of textNodes(root)){const next=offset+(node.textContent?.length??0);if(!started&&start>=offset&&start<=next){range.setStart(node,start-offset);started=true}if(started&&end>=offset&&end<=next){range.setEnd(node,end-offset);return range}offset=next}return null}
-function locate(root:HTMLElement,item:LessonHighlight){const text=root.textContent??'';if(text.slice(item.startOffset,item.endOffset)===item.selectedText)return [item.startOffset,item.endOffset] as const;const matches:number[]=[];let at=text.indexOf(item.selectedText);while(at>=0){if(text.slice(Math.max(0,at-item.prefixText.length),at)===item.prefixText&&text.slice(at+item.selectedText.length,at+item.selectedText.length+item.suffixText.length)===item.suffixText)matches.push(at);at=text.indexOf(item.selectedText,at+1)}return matches.length===1?[matches[0],matches[0]+item.selectedText.length] as const:null}
-function unwrap(root:HTMLElement){root.querySelectorAll('mark[data-lesson-highlight]').forEach(mark=>mark.replaceWith(...Array.from(mark.childNodes)));root.normalize()}
-function selectionOffsets(root:HTMLElement,range:Range){const before=document.createRange();before.selectNodeContents(root);before.setEnd(range.startContainer,range.startOffset);const start=before.toString().length;return {start,end:start+range.toString().length}}
-
-export function HighlightableLesson({lessonId,children,focusID}:{lessonId:string;focusID?:string}&PropsWithChildren){
- const root=useRef<HTMLDivElement>(null),client=useQueryClient(),notifications=useNotifications();const [draft,setDraft]=useState<{text:string;prefix:string;suffix:string;start:number;end:number}|null>(null),[message,setMessage]=useState(''),[activeID,setActiveID]=useState('');
- const highlights=useQuery({queryKey:['lesson-highlights',lessonId],queryFn:()=>learningAPI.highlights(lessonId),retry:false});
- const create=useMutation({mutationFn:(color:'yellow'|'green'|'blue')=>learningAPI.createHighlight(lessonId,{selectedText:draft!.text,prefixText:draft!.prefix,suffixText:draft!.suffix,startOffset:draft!.start,endOffset:draft!.end,color}),onSuccess:item=>{client.setQueryData<LessonHighlight[]>(['lesson-highlights',lessonId],old=>[...(old??[]),item]);setDraft(null);window.getSelection()?.removeAllRanges();notifications.success('Highlight saved.',`highlight-create:${item.id}`)},onError:()=>notifications.error('Highlight could not be saved. Sign in and try again.','highlight-create-error')});
- const update=useMutation({mutationFn:({id,color}:{id:string;color:string})=>learningAPI.updateHighlight(id,color),onSuccess:item=>{client.setQueryData<LessonHighlight[]>(['lesson-highlights',lessonId],old=>(old??[]).map(value=>value.id===item.id?{...value,color:item.color}:value));setActiveID('');notifications.success('Highlight colour updated.',`highlight-update:${item.id}`)},onError:()=>notifications.error('Highlight could not be updated.','highlight-update-error')});
- const remove=useMutation({mutationFn:learningAPI.deleteHighlight,onSuccess:(_,id)=>{client.setQueryData<LessonHighlight[]>(['lesson-highlights',lessonId],old=>(old??[]).filter(value=>value.id!==id));setActiveID('');notifications.success('Highlight removed.',`highlight-remove:${id}`)},onError:()=>notifications.error('Highlight could not be removed.','highlight-remove-error')});
- useLayoutEffect(()=>{const element=root.current;if(!element||!highlights.data)return;unwrap(element);for(const item of [...highlights.data].sort((a,b)=>b.startOffset-a.startOffset)){const position=locate(element,item);if(!position)continue;const range=rangeAt(element,...position);if(!range)continue;const mark=document.createElement('mark');mark.dataset.lessonHighlight=item.id;mark.className=`cursor-pointer rounded-sm ${colors[item.color]}`;mark.tabIndex=0;mark.setAttribute('aria-label','Saved lesson highlight. Press Enter to edit.');const activate=()=>setActiveID(item.id);mark.onclick=activate;mark.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();activate()}};try{range.surroundContents(mark)}catch{continue}}if(focusID)element.querySelector(`[data-lesson-highlight="${CSS.escape(focusID)}"]`)?.scrollIntoView({behavior:'smooth',block:'center'})},[highlights.data,children,focusID]);
- const selected=()=>{const selection=window.getSelection();if(!root.current||!selection||selection.isCollapsed||!selection.rangeCount)return;const range=selection.getRangeAt(0);if(!root.current.contains(range.commonAncestorContainer))return;const raw=range.toString(),text=raw.trim();if(!text||text.length>2000)return;const offsets=selectionOffsets(root.current,range),start=offsets.start+(raw.length-raw.trimStart().length),end=start+text.length,whole=root.current.textContent??'';setDraft({text,prefix:whole.slice(Math.max(0,start-40),start),suffix:whole.slice(end,end+40),start,end})};
- const copy=(event:ClipboardEvent)=>{const target=event.target as HTMLElement;if(target.closest('input,textarea,button,[contenteditable=true]'))return;event.preventDefault();setMessage('Lesson copying is restricted. Use highlights to save important passages.');window.setTimeout(()=>setMessage(''),3000)};
- const palette=(label:string,onColor:(color:'yellow'|'green'|'blue')=>void,pending:boolean,extra?:ReactNode)=><div role="toolbar" aria-label={label} className="sticky bottom-4 z-20 mx-auto mt-3 flex w-fit items-center gap-2 rounded-full bg-ink px-4 py-2 text-white shadow-xl"><Highlighter size={18}/>{(['yellow','green','blue'] as const).map(color=><button key={color} type="button" aria-label={`${label} ${color}`} disabled={pending} className={`h-7 w-7 rounded-full border-2 border-white ${colors[color]}`} onClick={()=>onColor(color)}/>)}{extra}</div>;
- return <div className="relative"><div ref={root} onMouseUp={selected} onKeyUp={selected} onCopy={copy}>{children}</div>{draft&&palette('Highlight selected text',color=>create.mutate(color),create.isPending,<button type="button" className="text-sm" onClick={()=>setDraft(null)}>Cancel</button>)}{activeID&&palette('Change highlight to',color=>update.mutate({id:activeID,color}),update.isPending,<><button type="button" aria-label="Remove highlight" disabled={remove.isPending} onClick={()=>remove.mutate(activeID)} className="text-red-200"><Trash2 size={18}/></button><button type="button" className="text-sm" onClick={()=>setActiveID('')}>Close</button></>)}{message&&<p role="status" className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-ink px-4 py-3 text-sm text-white shadow-xl">{message}</p>}</div>
+const colors = {
+  yellow: 'bg-yellow-200',
+  green: 'bg-emerald-200',
+  blue: 'bg-sky-200',
+} as const;
+function textNodes(root: Node) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  let node: Node | null;
+  while ((node = walker.nextNode())) nodes.push(node as Text);
+  return nodes;
+}
+function wrapTextRange(
+  root: HTMLElement,
+  start: number,
+  end: number,
+  createMark: () => HTMLElement,
+) {
+  const segments: Array<{ node: Text; start: number; end: number }> = [];
+  let offset = 0;
+  for (const node of textNodes(root)) {
+    const length = node.textContent?.length ?? 0;
+    const next = offset + length;
+    const localStart = Math.max(0, start - offset);
+    const localEnd = Math.min(length, end - offset);
+    if (localStart < localEnd)
+      segments.push({ node, start: localStart, end: localEnd });
+    offset = next;
+  }
+  // Work backwards so splitting a text node never changes the offsets or
+  // references of a segment that has not been wrapped yet.
+  for (const segment of segments.reverse()) {
+    const range = document.createRange();
+    range.setStart(segment.node, segment.start);
+    range.setEnd(segment.node, segment.end);
+    range.surroundContents(createMark());
+  }
+  return segments.length > 0;
+}
+function locate(root: HTMLElement, item: LessonHighlight) {
+  const text = root.textContent ?? '';
+  if (text.slice(item.startOffset, item.endOffset) === item.selectedText)
+    return [item.startOffset, item.endOffset] as const;
+  const matches: number[] = [];
+  let at = text.indexOf(item.selectedText);
+  while (at >= 0) {
+    if (
+      text.slice(Math.max(0, at - item.prefixText.length), at) ===
+        item.prefixText &&
+      text.slice(
+        at + item.selectedText.length,
+        at + item.selectedText.length + item.suffixText.length,
+      ) === item.suffixText
+    )
+      matches.push(at);
+    at = text.indexOf(item.selectedText, at + 1);
+  }
+  return matches.length === 1
+    ? ([matches[0], matches[0] + item.selectedText.length] as const)
+    : null;
+}
+function unwrap(root: HTMLElement) {
+  root
+    .querySelectorAll('mark[data-lesson-highlight]')
+    .forEach((mark) => mark.replaceWith(...Array.from(mark.childNodes)));
+  root.normalize();
+}
+function selectionOffsets(root: HTMLElement, range: Range) {
+  const before = document.createRange();
+  before.selectNodeContents(root);
+  before.setEnd(range.startContainer, range.startOffset);
+  const start = before.toString().length;
+  return { start, end: start + range.toString().length };
 }
 
-export function HighlightsPage(){const client=useQueryClient(),notifications=useNotifications();const q=useQuery({queryKey:['highlights'],queryFn:()=>learningAPI.highlights(),retry:false});const remove=useMutation({mutationFn:learningAPI.deleteHighlight,onSuccess:()=>{notifications.success('Highlight removed.');void client.invalidateQueries({queryKey:['highlights']})},onError:()=>notifications.error('Highlight could not be removed.')});const update=useMutation({mutationFn:({id,color}:{id:string;color:string})=>learningAPI.updateHighlight(id,color),onSuccess:()=>{notifications.success('Highlight colour updated.');void client.invalidateQueries({queryKey:['highlights']})},onError:()=>notifications.error('Highlight could not be updated.')});if(q.isPending)return <Loading/>;if(q.error||!q.data)return <ErrorState message="Highlights could not be loaded."/>;return <div className="mx-auto max-w-4xl"><p className="font-bold text-ocean">SAVED FOR REVIEW</p><h1 className="mt-1 text-3xl font-bold">My highlights</h1><p className="mt-2 text-slate-600">Your private lesson highlights are available on every signed-in device.</p><div className="mt-6 space-y-3">{q.data.map(item=><article key={item.id} className={`rounded-2xl border p-5 ${colors[item.color]}`}><Link to={`/lessons/${item.lessonId}?highlight=${item.id}`} className="font-bold text-ink hover:underline">{item.lessonTitle||item.lessonId}</Link><blockquote className="mt-2">“{item.selectedText}”</blockquote>{item.lessonVersion!==item.currentLessonVersion&&<p className="mt-2 text-sm font-semibold text-orange-800">This lesson changed since you saved the highlight. RijFiks will only restore it when the original text still matches.</p>}<div className="mt-3 flex items-center gap-2">{(['yellow','green','blue'] as const).map(color=><button type="button" aria-label={`Change to ${color}`} key={color} disabled={update.isPending} onClick={()=>update.mutate({id:item.id,color})} className={`h-7 w-7 rounded-full border ${colors[color]} ${item.color===color?'ring-2 ring-ocean':''}`}/>)}<button type="button" disabled={remove.isPending} onClick={()=>remove.mutate(item.id)} className="ml-auto inline-flex items-center gap-1 text-sm font-bold text-red-700"><Trash2 size={16}/> Remove</button></div></article>)}{q.data.length===0&&<p className="rounded-xl bg-slate-100 p-5 text-slate-600">Select text in a lesson to create your first highlight.</p>}</div></div>}
+export function HighlightableLesson({
+  lessonId,
+  children,
+  focusID,
+}: { lessonId: string; focusID?: string } & PropsWithChildren) {
+  const root = useRef<HTMLDivElement>(null),
+    client = useQueryClient(),
+    notifications = useNotifications();
+  const [draft, setDraft] = useState<{
+      text: string;
+      prefix: string;
+      suffix: string;
+      start: number;
+      end: number;
+    } | null>(null),
+    [message, setMessage] = useState(''),
+    [activeID, setActiveID] = useState('');
+  const highlights = useQuery({
+    queryKey: ['lesson-highlights', lessonId],
+    queryFn: () => learningAPI.highlights(lessonId),
+    retry: false,
+  });
+  const create = useMutation({
+    mutationFn: (color: 'yellow' | 'green' | 'blue') =>
+      learningAPI.createHighlight(lessonId, {
+        selectedText: draft!.text,
+        prefixText: draft!.prefix,
+        suffixText: draft!.suffix,
+        startOffset: draft!.start,
+        endOffset: draft!.end,
+        color,
+      }),
+    onSuccess: (item) => {
+      client.setQueryData<LessonHighlight[]>(
+        ['lesson-highlights', lessonId],
+        (old) => [...(old ?? []), item],
+      );
+      setDraft(null);
+      window.getSelection()?.removeAllRanges();
+      notifications.success('Highlight saved.', `highlight-create:${item.id}`);
+    },
+    onError: () =>
+      notifications.error(
+        'Highlight could not be saved. Sign in and try again.',
+        'highlight-create-error',
+      ),
+  });
+  const update = useMutation({
+    mutationFn: ({ id, color }: { id: string; color: string }) =>
+      learningAPI.updateHighlight(id, color),
+    onSuccess: (item) => {
+      client.setQueryData<LessonHighlight[]>(
+        ['lesson-highlights', lessonId],
+        (old) =>
+          (old ?? []).map((value) =>
+            value.id === item.id ? { ...value, color: item.color } : value,
+          ),
+      );
+      setActiveID('');
+      notifications.success(
+        'Highlight colour updated.',
+        `highlight-update:${item.id}`,
+      );
+    },
+    onError: () =>
+      notifications.error(
+        'Highlight could not be updated.',
+        'highlight-update-error',
+      ),
+  });
+  const remove = useMutation({
+    mutationFn: learningAPI.deleteHighlight,
+    onSuccess: (_, id) => {
+      client.setQueryData<LessonHighlight[]>(
+        ['lesson-highlights', lessonId],
+        (old) => (old ?? []).filter((value) => value.id !== id),
+      );
+      setActiveID('');
+      notifications.success('Highlight removed.', `highlight-remove:${id}`);
+    },
+    onError: () =>
+      notifications.error(
+        'Highlight could not be removed.',
+        'highlight-remove-error',
+      ),
+  });
+  useLayoutEffect(() => {
+    const element = root.current;
+    if (!element || !highlights.data) return;
+    const lessonElement: HTMLElement = element;
+    let timer = 0;
+    const observer = new MutationObserver(() => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(applyHighlights, 0);
+    });
+    const observe = () =>
+      observer.observe(lessonElement, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    function applyHighlights() {
+      observer.disconnect();
+      unwrap(lessonElement);
+      for (const item of [...highlights.data!].sort(
+        (a, b) => b.startOffset - a.startOffset,
+      )) {
+        const position = locate(lessonElement, item);
+        if (!position) continue;
+        const activate = () => setActiveID(item.id);
+        wrapTextRange(lessonElement, ...position, () => {
+          const mark = document.createElement('mark');
+          mark.dataset.lessonHighlight = item.id;
+          mark.className = `cursor-pointer rounded-sm ${colors[item.color]}`;
+          mark.tabIndex = 0;
+          mark.setAttribute(
+            'aria-label',
+            'Saved lesson highlight. Press Enter to edit.',
+          );
+          mark.onclick = activate;
+          mark.onkeydown = (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              activate();
+            }
+          };
+          return mark;
+        });
+      }
+      observe();
+    }
+    applyHighlights();
+    if (focusID)
+      element
+        .querySelector(`[data-lesson-highlight="${CSS.escape(focusID)}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return () => {
+      window.clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [highlights.data, children, focusID]);
+  const selected = () => {
+    const selection = window.getSelection();
+    if (
+      !root.current ||
+      !selection ||
+      selection.isCollapsed ||
+      !selection.rangeCount
+    )
+      return;
+    const range = selection.getRangeAt(0);
+    if (!root.current.contains(range.commonAncestorContainer)) return;
+    const raw = range.toString(),
+      text = raw.trim();
+    if (!text || text.length > 2000) return;
+    const offsets = selectionOffsets(root.current, range),
+      start = offsets.start + (raw.length - raw.trimStart().length),
+      end = start + text.length,
+      whole = root.current.textContent ?? '';
+    setDraft({
+      text,
+      prefix: whole.slice(Math.max(0, start - 40), start),
+      suffix: whole.slice(end, end + 40),
+      start,
+      end,
+    });
+  };
+  const copy = (event: ClipboardEvent) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('input,textarea,button,[contenteditable=true]')) return;
+    event.preventDefault();
+    setMessage(
+      'Lesson copying is restricted. Use highlights to save important passages.',
+    );
+    window.setTimeout(() => setMessage(''), 3000);
+  };
+  const palette = (
+    label: string,
+    onColor: (color: 'yellow' | 'green' | 'blue') => void,
+    pending: boolean,
+    extra?: ReactNode,
+  ) => (
+    <div
+      role="toolbar"
+      aria-label={label}
+      className="sticky bottom-4 z-20 mx-auto mt-3 flex w-fit items-center gap-2 rounded-full bg-ink px-4 py-2 text-white shadow-xl"
+    >
+      <Highlighter size={18} />
+      {(['yellow', 'green', 'blue'] as const).map((color) => (
+        <button
+          key={color}
+          type="button"
+          aria-label={`${label} ${color}`}
+          disabled={pending}
+          className={`h-7 w-7 rounded-full border-2 border-white ${colors[color]}`}
+          onClick={() => onColor(color)}
+        />
+      ))}
+      {extra}
+    </div>
+  );
+  return (
+    <div className="relative">
+      <div ref={root} onMouseUp={selected} onKeyUp={selected} onCopy={copy}>
+        {children}
+      </div>
+      {draft &&
+        palette(
+          'Highlight selected text',
+          (color) => create.mutate(color),
+          create.isPending,
+          <button
+            type="button"
+            className="text-sm"
+            onClick={() => setDraft(null)}
+          >
+            Cancel
+          </button>,
+        )}
+      {activeID &&
+        palette(
+          'Change highlight to',
+          (color) => update.mutate({ id: activeID, color }),
+          update.isPending,
+          <>
+            <button
+              type="button"
+              aria-label="Remove highlight"
+              disabled={remove.isPending}
+              onClick={() => remove.mutate(activeID)}
+              className="text-red-200"
+            >
+              <Trash2 size={18} />
+            </button>
+            <button
+              type="button"
+              className="text-sm"
+              onClick={() => setActiveID('')}
+            >
+              Close
+            </button>
+          </>,
+        )}
+      {message && (
+        <p
+          role="status"
+          className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-ink px-4 py-3 text-sm text-white shadow-xl"
+        >
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function HighlightsPage() {
+  const client = useQueryClient(),
+    notifications = useNotifications();
+  const q = useQuery({
+    queryKey: ['highlights'],
+    queryFn: () => learningAPI.highlights(),
+    retry: false,
+  });
+  const remove = useMutation({
+    mutationFn: learningAPI.deleteHighlight,
+    onSuccess: () => {
+      notifications.success('Highlight removed.');
+      void client.invalidateQueries({ queryKey: ['highlights'] });
+    },
+    onError: () => notifications.error('Highlight could not be removed.'),
+  });
+  const update = useMutation({
+    mutationFn: ({ id, color }: { id: string; color: string }) =>
+      learningAPI.updateHighlight(id, color),
+    onSuccess: () => {
+      notifications.success('Highlight colour updated.');
+      void client.invalidateQueries({ queryKey: ['highlights'] });
+    },
+    onError: () => notifications.error('Highlight could not be updated.'),
+  });
+  if (q.isPending) return <Loading />;
+  if (q.error || !q.data)
+    return <ErrorState message="Highlights could not be loaded." />;
+  return (
+    <div className="mx-auto max-w-4xl">
+      <p className="font-bold text-ocean">SAVED FOR REVIEW</p>
+      <h1 className="mt-1 text-3xl font-bold">My highlights</h1>
+      <p className="mt-2 text-slate-600">
+        Your private lesson highlights are available on every signed-in device.
+      </p>
+      <div className="mt-6 space-y-3">
+        {q.data.map((item) => (
+          <article
+            key={item.id}
+            className={`rounded-2xl border p-5 ${colors[item.color]}`}
+          >
+            <Link
+              to={`/lessons/${item.lessonId}?highlight=${item.id}`}
+              className="font-bold text-ink hover:underline"
+            >
+              {item.lessonTitle || item.lessonId}
+            </Link>
+            <blockquote className="mt-2">“{item.selectedText}”</blockquote>
+            {item.lessonVersion !== item.currentLessonVersion && (
+              <p className="mt-2 text-sm font-semibold text-orange-800">
+                This lesson changed since you saved the highlight. RijFiks will
+                only restore it when the original text still matches.
+              </p>
+            )}
+            <div className="mt-3 flex items-center gap-2">
+              {(['yellow', 'green', 'blue'] as const).map((color) => (
+                <button
+                  type="button"
+                  aria-label={`Change to ${color}`}
+                  key={color}
+                  disabled={update.isPending}
+                  onClick={() => update.mutate({ id: item.id, color })}
+                  className={`h-7 w-7 rounded-full border ${colors[color]} ${item.color === color ? 'ring-2 ring-ocean' : ''}`}
+                />
+              ))}
+              <button
+                type="button"
+                disabled={remove.isPending}
+                onClick={() => remove.mutate(item.id)}
+                className="ml-auto inline-flex items-center gap-1 text-sm font-bold text-red-700"
+              >
+                <Trash2 size={16} /> Remove
+              </button>
+            </div>
+          </article>
+        ))}
+        {q.data.length === 0 && (
+          <p className="rounded-xl bg-slate-100 p-5 text-slate-600">
+            Select text in a lesson to create your first highlight.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
